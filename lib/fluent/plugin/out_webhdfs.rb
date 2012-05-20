@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 require_relative 'ext_mixin'
 
 class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
@@ -99,9 +101,9 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
   
   def send_data(path, data)
     begin
-      client.append(path, data)
+      @client.append(path, data)
     rescue WebHDFS::FileNotFoundError
-      client.create(path, data)
+      @client.create(path, data)
     end
   end
 
