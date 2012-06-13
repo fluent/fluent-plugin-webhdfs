@@ -14,6 +14,8 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
   config_param :path, :string
   config_param :username, :string, :default => nil
 
+  config_param :httpfs, :bool, :default => false
+
   include FluentExt::PlainTextFormatterMixin
   config_set_default :output_include_time, true
   config_set_default :output_include_tag, true
@@ -61,6 +63,9 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
     # path => cached_url
     # @cached_datanode_urls = {}
     @client = WebHDFS::Client.new(@namenode_host, @namenode_port, @username)
+    if @httpfs
+      @client.httpfs_mode = true
+    end
     @mutex = Mutex.new
   end
 
