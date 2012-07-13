@@ -1,11 +1,9 @@
 # -*- coding: utf-8 -*-
 
-require_relative 'ext_mixin'
+require 'fluent/mixin/plaintextformatter'
 
 class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
   Fluent::Plugin.register_output('webhdfs', self)
-
-  WEBHDFS_VERSION = 'v1'
 
   config_set_default :buffer_type, 'memory'
   config_set_default :time_slice_format, '%Y%m%d'
@@ -16,13 +14,7 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
 
   config_param :httpfs, :bool, :default => false
 
-  include FluentExt::PlainTextFormatterMixin
-  config_set_default :output_include_time, true
-  config_set_default :output_include_tag, true
-  config_set_default :output_data_type, 'json'
-  config_set_default :field_separator, "\t"
-  config_set_default :add_newline, true
-  config_set_default :remove_prefix, nil
+  include Fluent::Mixin::PlainTextFormatter
 
   def initialize
     super
@@ -54,12 +46,6 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
     end
     @conn = nil
     
-    @f_separator = case @field_separator
-                   when 'SPACE' then ' '
-                   when 'COMMA' then ','
-                   else "\t"
-                   end
-
     # path => cached_url
     # @cached_datanode_urls = {}
     @client = WebHDFS::Client.new(@namenode_host, @namenode_port, @username)
@@ -91,10 +77,8 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
     record.to_json
   end
 
-  def format(tag, time, record)
-    time_str = @timef.format(time)
-    time_str + @f_separator + tag + @f_separator + record_to_string(record) + @line_end
-  end
+  # def format(tag, time, record)
+  # end
 
   def path_format(chunk_key)
     Time.strptime(chunk_key, @time_slice_format).strftime(@path)
