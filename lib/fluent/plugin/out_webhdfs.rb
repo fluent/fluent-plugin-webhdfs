@@ -8,13 +8,18 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
   config_set_default :buffer_type, 'memory'
   config_set_default :time_slice_format, '%Y%m%d'
 
-  config_param :namenode, :string # host:port
+  config_param :host, :string, :default => nil
+  config_param :port, :integer, :default => 50070
+  config_param :namenode, :string, :default => nil # host:port
+
   config_param :path, :string
   config_param :username, :string, :default => nil
 
   config_param :httpfs, :bool, :default => false
 
   include Fluent::Mixin::PlainTextFormatter
+
+  config_param :default_tag, :string, :default => 'tag_missing'
 
   def initialize
     super
@@ -36,11 +41,18 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
 
     super
 
-    unless /\A([a-zA-Z0-9][-a-zA-Z0-9.]*):(\d+)\Z/ =~ @namenode
-      raise Fluent::ConfigError, "Invalid config value about namenode: '#{@namenode}', needs NAMENODE_NAME:PORT"
+    if @host
+      @namenode_host = @host
+      @namenode_port = @port
+    elsif @namenode
+      unless /\A([a-zA-Z0-9][-a-zA-Z0-9.]*):(\d+)\Z/ =~ @namenode
+        raise Fluent::ConfigError, "Invalid config value about namenode: '#{@namenode}', needs NAMENODE_NAME:PORT"
+      end
+      @namenode_host = $1
+      @namenode_port = $2.to_i
+    else
+      raise Fluent::ConfigError, "WebHDFS host or namenode missing"
     end
-    @namenode_host = $1
-    @namenode_port = $2.to_i
     unless @path.index('/') == 0
       raise Fluent::ConfigError, "Path on hdfs MUST starts with '/', but '#{@path}'"
     end
@@ -52,7 +64,6 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
     if @httpfs
       @client.httpfs_mode = true
     end
-    @mutex = Mutex.new
   end
 
   def start
@@ -72,13 +83,6 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
   def shutdown
     super
   end
-
-  def record_to_string(record)
-    record.to_json
-  end
-
-  # def format(tag, time, record)
-  # end
 
   def path_format(chunk_key)
     Time.strptime(chunk_key, @time_slice_format).strftime(@path)
