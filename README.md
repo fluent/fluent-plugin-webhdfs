@@ -1,29 +1,76 @@
-# Fluent::Plugin::Webhdfs
+# fluent-plugin-webhdfs
 
-TODO: Write a gem description
+Fluentd output plugin to write data into Hadoop HDFS over WebHDFS/HttpFs.
 
-## Installation
+WebHDFSOutput slices data by time (specified unit), and store these data as hdfs file of plain text. You can specify to:
 
-Add this line to your application's Gemfile:
+* format whole data as serialized JSON, single attribute or separated multi attributes
+* include time as line header, or not
+* include tag as line header, or not
+* change field separator (default: TAB)
+* add new line as termination, or not
 
-    gem 'fluent-plugin-webhdfs'
+And you can specify output file path as 'path /path/to/dir/access.%Y%m%d.log', then got '/path/to/dir/access.20120316.log' on HDFS.
 
-And then execute:
+## Configuration
 
-    $ bundle
+### WebHDFSOutput
 
-Or install it yourself as:
+To store data by time,tag,json (same with 'type file') over WebHDFS:
 
-    $ gem install fluent-plugin-webhdfs
+    <match access.**>
+      type webhdfs
+      host namenode.your.cluster.local
+      port 50070
+      path /path/on/hdfs/access.log.%Y%m%d_%H.log
+    </match>
 
-## Usage
+With username of pseudo authentication:
 
-TODO: Write usage instructions here
+    <match access.**>
+      type webhdfs
+      host namenode.your.cluster.local
+      port 50070
+      path /path/on/hdfs/access.log.%Y%m%d_%H.log
+      username hdfsuser
+    </match>
+      
+Store data over HttpFs (instead of WebHDFS):
 
-## Contributing
+    <match access.**>
+      type webhdfs
+      host httpfs.node.your.cluster.local
+      port 14000
+      path /path/on/hdfs/access.log.%Y%m%d_%H.log
+      httpfs true
+    </match>
 
-1. Fork it
-2. Create your feature branch (`git checkout -b my-new-feature`)
-3. Commit your changes (`git commit -am 'Added some feature'`)
-4. Push to the branch (`git push origin my-new-feature`)
-5. Create new Pull Request
+Store data as TSV (TAB separated values) of specified keys, without time, with tag (removed prefix 'access'):
+
+    <match access.**>
+      type webhdfs
+      host namenode.your.cluster.local
+      port 50070
+      path /path/on/hdfs/access.log.%Y%m%d_%H.log
+
+      field_separator TAB        # or 'SPACE', 'COMMA'
+      output_include_time false
+      output_include_tag true
+      remove_prefix access
+
+      output_data_type attr:path,status,referer,agent,bytes
+    </match>
+
+If message doesn't have specified attribute, fluent-plugin-webhdfs outputs 'NULL' instead of values.
+
+## TODO
+
+* long run test
+  * over webhdfs and httpfs
+* patches welcome!
+
+## Copyright
+
+* Copyright (c) 2012- TAGOMORI Satoshi (tagomoris)
+* License
+  * Apache License, Version 2.0
