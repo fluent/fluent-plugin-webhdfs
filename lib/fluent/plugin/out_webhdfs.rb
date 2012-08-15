@@ -17,6 +17,9 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
 
   config_param :httpfs, :bool, :default => false
 
+  config_param :open_timeout, :integer, :default => 30 # from ruby net/http default
+  config_param :read_timeout, :integer, :default => 60 # from ruby net/http default
+
   include Fluent::Mixin::PlainTextFormatter
 
   config_param :default_tag, :string, :default => 'tag_missing'
@@ -56,14 +59,13 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
     unless @path.index('/') == 0
       raise Fluent::ConfigError, "Path on hdfs MUST starts with '/', but '#{@path}'"
     end
-    @conn = nil
     
-    # path => cached_url
-    # @cached_datanode_urls = {}
     @client = WebHDFS::Client.new(@namenode_host, @namenode_port, @username)
     if @httpfs
       @client.httpfs_mode = true
     end
+    @client.open_timeout = @open_timeout
+    @client.read_timeout = @read_timeout
   end
 
   def start
@@ -87,8 +89,6 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
   def path_format(chunk_key)
     Time.strptime(chunk_key, @time_slice_format).strftime(@path)
   end
-
-  # TODO datanode url caching?
 
   # TODO check conflictions
   
