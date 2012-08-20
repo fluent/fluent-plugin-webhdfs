@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+require 'fluent/mixin/config_placeholders'
 require 'fluent/mixin/plaintextformatter'
 
 class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
@@ -11,6 +12,8 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
   config_param :host, :string, :default => nil
   config_param :port, :integer, :default => 50070
   config_param :namenode, :string, :default => nil # host:port
+
+  include Fluent::Mixin::ConfigPlaceholders
 
   config_param :path, :string
   config_param :username, :string, :default => nil

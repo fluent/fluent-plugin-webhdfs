@@ -63,10 +63,33 @@ Store data as TSV (TAB separated values) of specified keys, without time, with t
 
 If message doesn't have specified attribute, fluent-plugin-webhdfs outputs 'NULL' instead of values.
 
+### Performance notifications
+
+Writing data on HDFS single file from 2 or more fluentd nodes, makes many bad blocks of HDFS. If you want to run 2 or more fluentd nodes with fluent-plugin-webhdfs, you should configure 'path' for each node.
+You can use '${hostname}' or '${uuid:random}' placeholders in configuration for this purpose.
+
+For hostname:
+
+    <match access.**>
+      type webhdfs
+      host namenode.your.cluster.local
+      port 50070
+      path /log/access/%Y%m%d/${hostname}.log
+    </match>
+
+Or with random filename (to avoid duplicated file name only):
+
+    <match access.**>
+      type webhdfs
+      host namenode.your.cluster.local
+      port 50070
+      path /log/access/%Y%m%d/${uuid:random}.log
+    </match>
+
+With configurations above, you can handle all of files of '/log/access/20120820/*' as specified timeslice access logs.
+
 ## TODO
 
-* long run test
-  * over webhdfs and httpfs
 * patches welcome!
 
 ## Copyright

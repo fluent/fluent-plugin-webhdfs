@@ -41,6 +41,15 @@ username hdfs_user
     assert_equal 'hdfs_user', d.instance.username
   end
 
+  def test_configure_placeholders
+    d = create_driver %[
+hostname testing.node.local
+namenode server.local:50070
+path /hdfs/${hostname}/file.%Y%m%d%H.log
+]
+    assert_equal '/hdfs/testing.node.local/file.%Y%m%d%H.log', d.instance.path
+  end
+
   def test_path_format
     d = create_driver
     assert_equal '/hdfs/path/file.%Y%m%d.log', d.instance.path
