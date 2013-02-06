@@ -53,7 +53,7 @@ Store data as TSV (TAB separated values) of specified keys, without time, with t
       port 50070
       path /path/on/hdfs/access.log.%Y%m%d_%H.log
 
-      field_separator TAB        # or 'SPACE', 'COMMA'
+      field_separator TAB        # or 'SPACE', 'COMMA' or 'SOH'(Start Of Heading: \001)
       output_include_time false
       output_include_tag true
       remove_prefix access
