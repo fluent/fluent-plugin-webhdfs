@@ -13,7 +13,7 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
   config_param :port, :integer, :default => 50070
   config_param :namenode, :string, :default => nil # host:port
 
-  config_param :ignore_init_error, :bool, :default => false
+  config_param :ignore_start_check_error, :bool, :default => false
 
   include Fluent::Mixin::ConfigPlaceholders
 
@@ -81,7 +81,7 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
       $log.info "webhdfs connection confirmed: #{@namenode_host}:#{@namenode_port}"
     rescue
       $log.error "webdhfs check request failed!"
-      raise unless @ignore_init_error
+      raise unless @ignore_start_check_error
     end
   end
 
