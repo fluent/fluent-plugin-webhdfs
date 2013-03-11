@@ -5,6 +5,7 @@ Fluentd output plugin to write data into Hadoop HDFS over WebHDFS/HttpFs.
 WebHDFSOutput slices data by time (specified unit), and store these data as hdfs file of plain text. You can specify to:
 
 * format whole data as serialized JSON, single attribute or separated multi attributes
+  * or LTSV, labeled-TSV (see http://ltsv.org/ )
 * include time as line header, or not
 * include tag as line header, or not
 * change field separator (default: TAB)
@@ -23,6 +24,16 @@ To store data by time,tag,json (same with 'type file') over WebHDFS:
       host namenode.your.cluster.local
       port 50070
       path /path/on/hdfs/access.log.%Y%m%d_%H.log
+    </match>
+
+To store data as LTSV without time and tag over WebHDFS:
+
+    <match access.**>
+      type webhdfs
+      host namenode.your.cluster.local
+      port 50070
+      path /path/on/hdfs/access.log.%Y%m%d_%H.log
+      output_data_type ltsv
     </match>
 
 With username of pseudo authentication:
@@ -87,6 +98,20 @@ Or with random filename (to avoid duplicated file name only):
     </match>
 
 With configurations above, you can handle all of files of '/log/access/20120820/*' as specified timeslice access logs.
+
+### For unstable Namenodes
+
+With default configuration, fluent-plugin-webhdfs checks HDFS filesystem status and raise error for inacive NameNodes.
+
+If you were usging unstable NameNodes and have wanted to ignore NameNode errors on startup of fluentd, enable `ignore_start_check_error` option like below:
+
+    <match access.**>
+      type webhdfs
+      host namenode.your.cluster.local
+      port 50070
+      path /log/access/%Y%m%d/${hostname}.log
+      ignore_start_check_error true
+    </match>
 
 ## TODO
 
