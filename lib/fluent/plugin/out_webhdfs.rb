@@ -13,6 +13,8 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
   config_param :port, :integer, :default => 50070
   config_param :namenode, :string, :default => nil # host:port
 
+  config_param :access_on_start, :bool, :default => true
+
   include Fluent::Mixin::ConfigPlaceholders
 
   config_param :path, :string
@@ -74,15 +76,20 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
   def start
     super
 
-    noerror = false
-    begin
-      ary = @client.list('/')
+    if @access_on_start
+      noerror = false
+      begin
+        ary = @client.list('/')
+        noerror = true
+      rescue
+        $log.error "webdhfs check request failed!"
+        raise
+      end
+      $log.info "webhdfs connection confirmed: #{@namenode_host}:#{@namenode_port}"
+    else
+      $log.info "skip webhdfs connection check: #{@namenode_host}:#{@namenode_port}"
       noerror = true
-    rescue
-      $log.error "webdhfs check request failed!"
-      raise
     end
-    $log.info "webhdfs connection confirmed: #{@namenode_host}:#{@namenode_port}"
   end
 
   def shutdown
