@@ -18,6 +18,7 @@ path /hdfs/path/file.%Y%m%d.log
     assert_equal '%Y%m%d', d.instance.time_slice_format
     assert_equal false, d.instance.httpfs
     assert_nil d.instance.username
+    assert_equal true, d.instance.access_on_start
     
     assert_equal true, d.instance.output_include_time
     assert_equal true, d.instance.output_include_tag
