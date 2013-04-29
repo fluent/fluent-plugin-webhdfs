@@ -80,7 +80,7 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
       ary = @client.list('/')
       $log.info "webhdfs connection confirmed: #{@namenode_host}:#{@namenode_port}"
     rescue
-      $log.error "webdhfs check request failed!"
+      $log.error "webhdfs check request failed!"
       raise unless @ignore_start_check_error
     end
   end
