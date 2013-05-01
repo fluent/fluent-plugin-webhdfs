@@ -12,6 +12,7 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
   config_param :host, :string, :default => nil
   config_param :port, :integer, :default => 50070
   config_param :namenode, :string, :default => nil # host:port
+  config_param :standby_namenode, :string, :default => nil # host:port
 
   config_param :ignore_start_check_error, :bool, :default => false
 
@@ -61,16 +62,31 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
     else
       raise Fluent::ConfigError, "WebHDFS host or namenode missing"
     end
+    if @standby_namenode
+      unless /\A([a-zA-Z0-9][-a-zA-Z0-9.]*):(\d+)\Z/ =~ @standby_namenode
+        raise Fluent::ConfigError, "Invalid config value about standby namenode: '#{@standby_namenode}', needs STANDBY_NAMENODE_NAME:PORT"
+      end
+      @standby_namenode_host = $1
+      @standby_namenode_port = $2.to_i
+    end
     unless @path.index('/') == 0
       raise Fluent::ConfigError, "Path on hdfs MUST starts with '/', but '#{@path}'"
     end
     
-    @client = WebHDFS::Client.new(@namenode_host, @namenode_port, @username)
-    if @httpfs
-      @client.httpfs_mode = true
+    @client = prepare_client(@namenode_host, @namenode_port, @username)
+    if @standby_namenode_host
+      @client_standby = prepare_client(@standby_namenode_host, @standby_namenode_port, @username)
     end
-    @client.open_timeout = @open_timeout
-    @client.read_timeout = @read_timeout
+  end
+
+  def prepare_client(host, port, username)
+    client = WebHDFS::Client.new(host, port, username)
+    if @httpfs
+      client.httpfs_mode = true
+    end
+    client.open_timeout = @open_timeout
+    client.read_timeout = @read_timeout
+    client
   end
 
   def start
@@ -93,6 +109,16 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
     Time.strptime(chunk_key, @time_slice_format).strftime(@path)
   end
 
+  def namenode_failover
+    if @standby_namenode
+      c = @client
+      @client = @client_standby
+      @client_standby = c
+      @namenode_failovered = true
+      $log.warn "Namenode failovered, now use #{@client.host}:#{@client.port} ."
+    end
+  end
+
   # TODO check conflictions
   
   def send_data(path, data)
@@ -100,6 +126,13 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
       @client.append(path, data)
     rescue WebHDFS::FileNotFoundError
       @client.create(path, data)
+    rescue WebHDFS::IOError => e
+      if e.message.match(/org\.apache\.hadoop\.ipc\.StandbyException/) && @client_standby && !@namenode_failovered
+        $log.warn "Seems the connected host is a standy namenode (Maybe due to an auto-failover). Gonna try the standby namenode."
+        namenode_failover
+        retry
+      end
+      raise
     end
   end
 
@@ -107,8 +140,16 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
     hdfs_path = path_format(chunk.key)
     begin
       send_data(hdfs_path, chunk.read)
+
+      ## reset failover status after one success send
+      @namenode_failovered = false
     rescue
       $log.error "failed to communicate hdfs cluster, path: #{hdfs_path}"
+      if ( @error_history.size >= 8 || @error_history.size > @retry_limit/2 ) && @client_standby && !@namenode_failovered
+        $log.warn "Too many failures. Try to use the standby namenode instead."
+        namenode_failover
+        retry
+      end
       raise
     end
     hdfs_path
