@@ -26,6 +26,11 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
   config_param :open_timeout, :integer, :default => 30 # from ruby net/http default
   config_param :read_timeout, :integer, :default => 60 # from ruby net/http default
 
+  # how many times of write failure before switch to standby namenode
+  # by default it's 11 times that costs 1023 seconds inside fluentd,
+  # which is considered enough to exclude the scenes that caused by temporary network fail or single datanode fail
+  config_param :failures_before_use_standby, :integer, :default => 11
+
   include Fluent::Mixin::PlainTextFormatter
 
   config_param :default_tag, :string, :default => 'tag_missing'
@@ -120,14 +125,14 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
   end
 
   # TODO check conflictions
-  
+
   def send_data(path, data)
     begin
       @client.append(path, data)
     rescue WebHDFS::FileNotFoundError
       @client.create(path, data)
     rescue WebHDFS::IOError => e
-      if e.message.match(/org\.apache\.hadoop\.ipc\.StandbyException/) && @client_standby && !@namenode_failovered
+      if e.message.match(/org\.apache\.hadoop\.ipc\.StandbyException/) && @client_standby
         $log.warn "Seems the connected host is a standy namenode (Maybe due to an auto-failover). Gonna try the standby namenode."
         namenode_failover
         retry
@@ -145,7 +150,7 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
       @namenode_failovered = false
     rescue
       $log.error "failed to communicate hdfs cluster, path: #{hdfs_path}"
-      if ( @error_history.size >= 8 || @error_history.size > @retry_limit/2 ) && @client_standby && !@namenode_failovered
+      if ((@error_history.size + 1) >= @failures_before_use_standby) && @client_standby && !@namenode_failovered
         $log.warn "Too many failures. Try to use the standby namenode instead."
         namenode_failover
         retry
