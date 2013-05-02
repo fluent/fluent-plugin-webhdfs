@@ -127,6 +127,7 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
   # TODO check conflictions
 
   def send_data(path, data)
+    try_cnt = 0
     begin
       @client.append(path, data)
     rescue WebHDFS::FileNotFoundError
@@ -135,7 +136,8 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
       if e.message.match(/org\.apache\.hadoop\.ipc\.StandbyException/) && @client_standby
         $log.warn "Seems the connected host is a standy namenode (Maybe due to an auto-failover). Gonna try the standby namenode."
         namenode_failover
-        retry
+        try_cnt += 1
+        retry if try_cnt <= 1
       end
       raise
     end
