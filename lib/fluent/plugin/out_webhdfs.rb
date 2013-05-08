@@ -116,9 +116,7 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
 
   def namenode_failover
     if @standby_namenode
-      c = @client
-      @client = @client_standby
-      @client_standby = c
+      @client, @client_standby = @client_standby, @client
       @namenode_failovered = true
       $log.warn "Namenode failovered, now use #{@client.host}:#{@client.port} ."
     end
