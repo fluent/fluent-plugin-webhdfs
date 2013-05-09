@@ -77,7 +77,7 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
     unless @path.index('/') == 0
       raise Fluent::ConfigError, "Path on hdfs MUST starts with '/', but '#{@path}'"
     end
-    
+
     @client = prepare_client(@namenode_host, @namenode_port, @username)
     if @standby_namenode_host
       @client_standby = prepare_client(@standby_namenode_host, @standby_namenode_port, @username)
@@ -92,6 +92,19 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
     client.open_timeout = @open_timeout
     client.read_timeout = @read_timeout
     client
+  end
+
+  def namenode_available(client)
+    if client
+      available = true
+      begin
+        client.list('/')
+      rescue => e
+        $log.warn "webhdfs check request failed. (host: #{client.host}:#{client.port}, error: #{e.message})"
+        available = false
+      end
+      available
+    end
   end
 
   def start
@@ -114,48 +127,48 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
     Time.strptime(chunk_key, @time_slice_format).strftime(@path)
   end
 
+  def is_standby_exception(e)
+    e.is_a?(WebHDFS::IOError) && e.message.match(/org\.apache\.hadoop\.ipc\.StandbyException/)
+  end
+
   def namenode_failover
     if @standby_namenode
       @client, @client_standby = @client_standby, @client
-      @namenode_failovered = true
-      $log.warn "Namenode failovered, now use #{@client.host}:#{@client.port} ."
+      $log.warn "Namenode failovered, now use #{@client.host}:#{@client.port}."
     end
   end
 
   # TODO check conflictions
 
   def send_data(path, data)
-    try_cnt = 0
     begin
       @client.append(path, data)
     rescue WebHDFS::FileNotFoundError
       @client.create(path, data)
-    rescue WebHDFS::IOError => e
-      if e.message.match(/org\.apache\.hadoop\.ipc\.StandbyException/) && @client_standby
-        $log.warn "Seems the connected host is a standy namenode (Maybe due to an auto-failover). Gonna try the standby namenode."
-        namenode_failover
-        try_cnt += 1
-        retry if try_cnt <= 1
-      end
-      raise
     end
   end
 
   def write(chunk)
     hdfs_path = path_format(chunk.key)
+    failovered = false
     begin
       send_data(hdfs_path, chunk.read)
-
-      ## reset failover status after one success send
-      @namenode_failovered = false
-    rescue
-      $log.error "failed to communicate hdfs cluster, path: #{hdfs_path}"
-      if ((@error_history.size + 1) >= @failures_before_use_standby) && @client_standby && !@namenode_failovered
-        $log.warn "Too many failures. Try to use the standby namenode instead."
+    rescue => e
+      $log.warn "failed to communicate hdfs cluster, path: #{hdfs_path}"
+      raise e if failovered
+      if is_standby_exception(e) && namenode_available(@client_standby)
+        $log.warn "Seems the connected host is a standy namenode (Maybe due to an auto-failover). Gonna try the standby namenode."
         namenode_failover
+        failovered = true
         retry
       end
-      raise
+      if ((@error_history.size + 1) >= @failures_before_use_standby) && namenode_available(@client_standby)
+        $log.warn "Too many failures. Try to use the standby namenode instead."
+        namenode_failover
+        failovered = true
+        retry
+      end
+      raise e
     end
     hdfs_path
   end
