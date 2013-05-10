@@ -119,6 +119,8 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
         available = false
       end
       available
+    else
+      false
     end
   end
 
