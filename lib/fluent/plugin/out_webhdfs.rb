@@ -60,7 +60,7 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
       @namenode_port = @port
     elsif @namenode
       unless /\A([a-zA-Z0-9][-a-zA-Z0-9.]*):(\d+)\Z/ =~ @namenode
-        raise Fluent::ConfigError, "Invalid config value about namenode: '#{@namenode}', needs NAMENODE_NAME:PORT"
+        raise Fluent::ConfigError, "Invalid config value about namenode: '#{@namenode}', needs NAMENODE_HOST:PORT"
       end
       @namenode_host = $1
       @namenode_port = $2.to_i
@@ -69,7 +69,10 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
     end
     if @standby_namenode
       unless /\A([a-zA-Z0-9][-a-zA-Z0-9.]*):(\d+)\Z/ =~ @standby_namenode
-        raise Fluent::ConfigError, "Invalid config value about standby namenode: '#{@standby_namenode}', needs STANDBY_NAMENODE_NAME:PORT"
+        raise Fluent::ConfigError, "Invalid config value about standby namenode: '#{@standby_namenode}', needs STANDBY_NAMENODE_HOST:PORT"
+      end
+      if @httpfs
+        raise Fluent::ConfigError, "Invalid configuration: specified to use both of standby_namenode and httpfs."
       end
       @standby_namenode_host = $1
       @standby_namenode_port = $2.to_i
@@ -81,6 +84,8 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
     @client = prepare_client(@namenode_host, @namenode_port, @username)
     if @standby_namenode_host
       @client_standby = prepare_client(@standby_namenode_host, @standby_namenode_port, @username)
+    else
+      @client_standby = nil
     end
   end
 
@@ -100,7 +105,7 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
       begin
         client.list('/')
       rescue => e
-        $log.warn "webhdfs check request failed. (host: #{client.host}:#{client.port}, error: #{e.message})"
+        $log.warn "webhdfs check request failed. (namenode: #{client.host}:#{client.port}, error: #{e.message})"
         available = false
       end
       available
@@ -134,7 +139,7 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
   def namenode_failover
     if @standby_namenode
       @client, @client_standby = @client_standby, @client
-      $log.warn "Namenode failovered, now use #{@client.host}:#{@client.port}."
+      $log.warn "Namenode failovered, now using #{@client.host}:#{@client.port}."
     end
   end
 
@@ -155,9 +160,11 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
       send_data(hdfs_path, chunk.read)
     rescue => e
       $log.warn "failed to communicate hdfs cluster, path: #{hdfs_path}"
-      raise e if failovered
+
+      raise e if !@client_standby || failovered
+
       if is_standby_exception(e) && namenode_available(@client_standby)
-        $log.warn "Seems the connected host is a standy namenode (Maybe due to an auto-failover). Gonna try the standby namenode."
+        $log.warn "Seems the connected host status is not active (maybe due to failovers). Gonna try another namenode immediately."
         namenode_failover
         failovered = true
         retry
