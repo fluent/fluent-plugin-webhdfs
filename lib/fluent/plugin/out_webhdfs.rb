@@ -115,12 +115,17 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
   def start
     super
 
-    begin
-      ary = @client.list('/')
+    if namenode_available(@client)
       $log.info "webhdfs connection confirmed: #{@namenode_host}:#{@namenode_port}"
-    rescue
-      $log.error "webhdfs check request failed!"
-      raise unless @ignore_start_check_error
+      return
+    end
+    if @client_standby && namenode_available(@client_standby)
+      $log.info "webhdfs connection confirmed: #{@standby_namenode_host}:#{@standby_namenode_port}"
+      return
+    end
+
+    unless @ignore_start_check_error
+      raise RuntimeError, "webhdfs is not available now."
     end
   end
 
