@@ -26,6 +26,10 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
   config_param :open_timeout, :integer, :default => 30 # from ruby net/http default
   config_param :read_timeout, :integer, :default => 60 # from ruby net/http default
 
+  config_param :retry_known_errors, :bool, :default => false
+  config_param :retry_interval, :integer, :default => nil
+  config_param :retry_times, :integer, :default => nil
+
   # how many times of write failure before switch to standby namenode
   # by default it's 11 times that costs 1023 seconds inside fluentd,
   # which is considered enough to exclude the scenes that caused by temporary network fail or single datanode fail
@@ -96,6 +100,12 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
     end
     client.open_timeout = @open_timeout
     client.read_timeout = @read_timeout
+    if @retry_known_errors
+      client.retry_known_errors = true
+      client.retry_interval = @retry_interval if @retry_interval
+      client.retry_times = @retry_times if @retry_times
+    end
+
     client
   end
 
