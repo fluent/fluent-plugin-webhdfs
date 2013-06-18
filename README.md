@@ -26,6 +26,14 @@ To store data by time,tag,json (same with 'type file') over WebHDFS:
       path /path/on/hdfs/access.log.%Y%m%d_%H.log
     </match>
 
+To specify namenode, `namenode` is also available:
+
+    <match access.**>
+      type     webhdfs
+      namenode master.your.cluster.local:50070
+      path     /path/on/hdfs/access.log.%Y%m%d_%H.log
+    </match>
+
 To store data as LTSV without time and tag over WebHDFS:
 
     <match access.**>
@@ -74,6 +82,28 @@ Store data as TSV (TAB separated values) of specified keys, without time, with t
 
 If message doesn't have specified attribute, fluent-plugin-webhdfs outputs 'NULL' instead of values.
 
+### Namenode HA / Auto retry for WebHDFS known errors
+
+`fluent-plugin-webhdfs` (v0.2.0 or later) accepts 2 namenodes for Namenode HA (active/standby). Use `standby_namenode` like this:
+
+    <match access.**>
+      type             webhdfs
+      namenode         master1.your.cluster.local:50070
+	  standby_namenode master2.your.cluster.local:50070
+      path             /path/on/hdfs/access.log.%Y%m%d_%H.log
+    </match>
+
+And you can also specify to retry known hdfs errors (such like `LeaseExpiredException`) automatically. With this configuration, fluentd doesn't write logs for this errors if retry successed.
+
+    <match access.**>
+      type               webhdfs
+      namenode           master1.your.cluster.local:50070
+      path               /path/on/hdfs/access.log.%Y%m%d_%H.log
+	  retry_known_errors yes
+	  retry_times        1 # default 1
+	  retry_interval     1 # [sec] default 1
+    </match>
+
 ### Performance notifications
 
 Writing data on HDFS single file from 2 or more fluentd nodes, makes many bad blocks of HDFS. If you want to run 2 or more fluentd nodes with fluent-plugin-webhdfs, you should configure 'path' for each node.
@@ -99,6 +129,16 @@ Or with random filename (to avoid duplicated file name only):
 
 With configurations above, you can handle all of files of '/log/access/20120820/*' as specified timeslice access logs.
 
+For high load cluster nodes, you can specify timeouts for HTTP requests.
+
+    <match access.**>
+	  type webhdfs
+	  namenode master.your.cluster.local:50070
+      path /log/access/%Y%m%d/${hostname}.log
+	  open_timeout 180 # [sec] default: 30
+	  read_timeout 180 # [sec] default: 60
+    </match>
+
 ### For unstable Namenodes
 
 With default configuration, fluent-plugin-webhdfs checks HDFS filesystem status and raise error for inacive NameNodes.
@@ -115,6 +155,8 @@ If you were usging unstable NameNodes and have wanted to ignore NameNode errors 
 
 ## TODO
 
+* configuration example for Hadoop Namenode HA
+  * here, or docs.fluentd.org ?
 * patches welcome!
 
 ## Copyright
