@@ -39,6 +39,10 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
 
   config_param :default_tag, :string, :default => 'tag_missing'
 
+  config_param :append, :bool, :default => true
+
+  CHUNK_ID_PLACE_HOLDER = '${chunk_id}'
+
   def initialize
     super
     require 'net/http'
@@ -90,6 +94,12 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
       @client_standby = prepare_client(@standby_namenode_host, @standby_namenode_port, @username)
     else
       @client_standby = nil
+    end
+
+    if not @append
+      if @path.index(CHUNK_ID_PLACE_HOLDER).nil?
+        raise Fluent::ConfigError, "path must contain ${chunk_id}, which is the placeholder for chunk_id, when append is set to false."
+      end
     end
   end
 
@@ -160,18 +170,31 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
     end
   end
 
+  def chunk_unique_id_to_str(unique_id)
+    unique_id.unpack('C*').map{|x| x.to_s(16).rjust(2,'0')}.join('')
+  end
+
   # TODO check conflictions
 
   def send_data(path, data)
-    begin
-      @client.append(path, data)
-    rescue WebHDFS::FileNotFoundError
-      @client.create(path, data)
+    if @append
+      begin
+        @client.append(path, data)
+      rescue WebHDFS::FileNotFoundError
+        @client.create(path, data)
+      end
+    else
+      @client.create(path, data, {'overwrite' => 'true'})
     end
   end
 
   def write(chunk)
-    hdfs_path = path_format(chunk.key)
+    hdfs_path = if @append
+                  path_format(chunk.key)
+                else
+                  path_format(chunk.key).gsub(CHUNK_ID_PLACE_HOLDER, chunk_unique_id_to_str(chunk.unique_id))
+                end
+
     failovered = false
     begin
       send_data(hdfs_path, chunk.read)
