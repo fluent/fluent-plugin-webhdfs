@@ -64,5 +64,13 @@ path /hdfs/path/file.%Y%m%d.%H%M.log
     assert_equal '/hdfs/path/file.%Y%m%d.%H%M.log', d.instance.path
     assert_equal '%Y%m%d%H%M', d.instance.time_slice_format
     assert_equal '/hdfs/path/file.20120718.1503.log', d.instance.path_format('201207181503')
+
+    assert_raise Fluent::ConfigError do
+      d = create_driver %[
+            namenode server.local:14000
+            path /hdfs/path/file.%Y%m%d.%H%M.log
+            append false
+          ]
+    end
   end
 end
