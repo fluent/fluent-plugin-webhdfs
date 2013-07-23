@@ -153,6 +153,21 @@ If you were usging unstable NameNodes and have wanted to ignore NameNode errors 
       ignore_start_check_error true
     </match>
 
+### For unstable Datanodes
+
+With unstable datanodes that frequently downs, appending over WebHDFS may produce broken files. In such cases, specify `append no` and `${chunk_id}` parameter.
+
+    <match access.**>
+      type webhdfs
+      host namenode.your.cluster.local
+      port 50070
+      
+      append no
+      path   /log/access/%Y%m%d/${hostname}.${chunk_id}.log
+    </match>
+
+`out_webhdfs` creates new files on hdfs per flush of fluentd, with chunk id. You shouldn't care broken files from append operations.
+
 ## TODO
 
 * configuration example for Hadoop Namenode HA
