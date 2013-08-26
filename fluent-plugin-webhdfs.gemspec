@@ -8,6 +8,7 @@ Gem::Specification.new do |gem|
   gem.summary       = %q{Fluentd plugin to write data on HDFS over WebHDFS, with flexible formatting}
   gem.description   = %q{For WebHDFS and HttpFs of Hadoop HDFS}
   gem.homepage      = "https://github.com/fluent/fluent-plugin-webhdfs"
+  gem.license       = "APLv2"
 
   gem.files         = `git ls-files`.split($\)
   gem.executables   = gem.files.grep(%r{^bin/}).map{ |f| File.basename(f) }
