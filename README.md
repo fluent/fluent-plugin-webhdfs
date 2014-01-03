@@ -26,6 +26,17 @@ To store data by time,tag,json (same with 'type file') over WebHDFS:
       path /path/on/hdfs/access.log.%Y%m%d_%H.log
     </match>
 
+If you want JSON object only (without time or tag or both on header of lines), specify it by `output_include_time` or `output_include_tag` (default true):
+
+    <match access.**>
+      type webhdfs
+      host namenode.your.cluster.local
+      port 50070
+      path /path/on/hdfs/access.log.%Y%m%d_%H.log
+      output_include_time false
+      output_include_tag  false
+    </match>
+
 To specify namenode, `namenode` is also available:
 
     <match access.**>
