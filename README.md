@@ -1,4 +1,4 @@
-# fluent-plugin-webhdfs
+# fluent-plugin-webhdfs, a plugin for [Fluentd](http://fluentd.org)
 
 Fluentd output plugin to write data into Hadoop HDFS over WebHDFS/HttpFs.
 
