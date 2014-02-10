@@ -1,6 +1,6 @@
 # fluent-plugin-webhdfs
 
-Fluentd output plugin to write data into Hadoop HDFS over WebHDFS/HttpFs.
+[Fluentd](http://fluentd.org/) output plugin to write data into Hadoop HDFS over WebHDFS/HttpFs.
 
 WebHDFSOutput slices data by time (specified unit), and store these data as hdfs file of plain text. You can specify to:
 
