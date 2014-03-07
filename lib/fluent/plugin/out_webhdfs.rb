@@ -50,6 +50,11 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
     require 'webhdfs'
   end
 
+  # Define `log` method for v0.10.42 or earlier
+  unless method_defined?(:log)
+    define_method("log") { $log }
+  end
+
   def configure(conf)
     if conf['path']
       if conf['path'].index('%S')
@@ -125,7 +130,7 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
       begin
         client.list('/')
       rescue => e
-        $log.warn "webhdfs check request failed. (namenode: #{client.host}:#{client.port}, error: #{e.message})"
+        log.warn "webhdfs check request failed. (namenode: #{client.host}:#{client.port}, error: #{e.message})"
         available = false
       end
       available
@@ -138,11 +143,11 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
     super
 
     if namenode_available(@client)
-      $log.info "webhdfs connection confirmed: #{@namenode_host}:#{@namenode_port}"
+      log.info "webhdfs connection confirmed: #{@namenode_host}:#{@namenode_port}"
       return
     end
     if @client_standby && namenode_available(@client_standby)
-      $log.info "webhdfs connection confirmed: #{@standby_namenode_host}:#{@standby_namenode_port}"
+      log.info "webhdfs connection confirmed: #{@standby_namenode_host}:#{@standby_namenode_port}"
       return
     end
 
@@ -166,7 +171,7 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
   def namenode_failover
     if @standby_namenode
       @client, @client_standby = @client_standby, @client
-      $log.warn "Namenode failovered, now using #{@client.host}:#{@client.port}."
+      log.warn "Namenode failovered, now using #{@client.host}:#{@client.port}."
     end
   end
 
@@ -199,18 +204,18 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
     begin
       send_data(hdfs_path, chunk.read)
     rescue => e
-      $log.warn "failed to communicate hdfs cluster, path: #{hdfs_path}"
+      log.warn "failed to communicate hdfs cluster, path: #{hdfs_path}"
 
       raise e if !@client_standby || failovered
 
       if is_standby_exception(e) && namenode_available(@client_standby)
-        $log.warn "Seems the connected host status is not active (maybe due to failovers). Gonna try another namenode immediately."
+        log.warn "Seems the connected host status is not active (maybe due to failovers). Gonna try another namenode immediately."
         namenode_failover
         failovered = true
         retry
       end
       if ((@error_history.size + 1) >= @failures_before_use_standby) && namenode_available(@client_standby)
-        $log.warn "Too many failures. Try to use the standby namenode instead."
+        log.warn "Too many failures. Try to use the standby namenode instead."
         namenode_failover
         failovered = true
         retry
