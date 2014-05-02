@@ -48,6 +48,10 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
     require 'net/http'
     require 'time'
     require 'webhdfs'
+    require 'http_configuration'
+    if no_proxy = ENV['NO_PROXY'] || ENV['no_proxy']
+      Net::HTTP::Configuration.set_global :no_proxy => no_proxy
+    end
   end
 
   # Define `log` method for v0.10.42 or earlier
