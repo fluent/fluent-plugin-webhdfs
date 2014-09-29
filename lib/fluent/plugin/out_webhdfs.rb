@@ -214,7 +214,7 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
         failovered = true
         retry
       end
-      if ((@error_history.size + 1) >= @failures_before_use_standby) && namenode_available(@client_standby)
+      if @num_errors && ((@num_errors + 1) >= @failures_before_use_standby) && namenode_available(@client_standby)
         log.warn "Too many failures. Try to use the standby namenode instead."
         namenode_failover
         failovered = true
