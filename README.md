@@ -93,6 +93,28 @@ Store data as TSV (TAB separated values) of specified keys, without time, with t
 
 If message doesn't have specified attribute, fluent-plugin-webhdfs outputs 'NULL' instead of values.
 
+With ssl:
+
+    <match access.**>
+      type webhdfs
+      host namenode.your.cluster.local
+      port 50070
+      path /path/on/hdfs/access.log.%Y%m%d_%H.log
+      ssl true
+      ssl_ca_file /path/to/ca_file.pem   # if needed
+      ssl_verify_mode peer               # if needed (peer or none)
+    </match>
+
+With kerberos authentication:
+
+    <match access.**>
+      type webhdfs
+      host namenode.your.cluster.local
+      port 50070
+      path /path/on/hdfs/access.log.%Y%m%d_%H.log
+      kerberos true
+    </match>
+
 ### Namenode HA / Auto retry for WebHDFS known errors
 
 `fluent-plugin-webhdfs` (v0.2.0 or later) accepts 2 namenodes for Namenode HA (active/standby). Use `standby_namenode` like this:
