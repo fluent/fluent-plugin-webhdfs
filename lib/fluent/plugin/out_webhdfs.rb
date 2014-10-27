@@ -41,6 +41,21 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
 
   config_param :append, :bool, :default => true
 
+  config_param :ssl, :bool, :default => false
+  config_param :ssl_ca_file, :string, :default => nil
+  config_param :ssl_verify_mode, :default => nil do |val|
+    case val
+    when 'none'
+      :none
+    when 'peer'
+      :peer
+    else
+      raise ConfigError, "unexpected parameter on ssl_verify_mode: #{val}"
+    end
+  end
+
+  config_param :kerberos, :bool, :default => false
+
   CHUNK_ID_PLACE_HOLDER = '${chunk_id}'
 
   def initialize
@@ -119,6 +134,14 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
       client.retry_known_errors = true
       client.retry_interval = @retry_interval if @retry_interval
       client.retry_times = @retry_times if @retry_times
+    end
+    if @ssl
+      client.ssl = true
+      client.ssl_ca_file = @ssl_ca_file if @ssl_ca_file
+      client.ssl_verify_mode = @ssl_verify_mode if @ssl_verify_mode
+    end
+    if @kerberos
+      client.kerberos = true
     end
 
     client
