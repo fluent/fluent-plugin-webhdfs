@@ -105,6 +105,11 @@ With ssl:
       ssl_verify_mode peer               # if needed (peer or none)
     </match>
 
+Here `ssl_verify_mode peer` means to verify the server's certificate.
+You can turn off it by setting `ssl_verify_mode none`. The default is `peer`.
+See [net/http](http://www.ruby-doc.org/stdlib-2.1.3/libdoc/net/http/rdoc/Net/HTTP.html)
+and [openssl](http://www.ruby-doc.org/stdlib-2.1.3/libdoc/openssl/rdoc/OpenSSL.html) documentation for further details.
+
 With kerberos authentication:
 
     <match access.**>
