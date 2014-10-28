@@ -56,6 +56,8 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
 
   config_param :kerberos, :bool, :default => false
 
+  config_param :store_as, :string, :default => nil
+
   CHUNK_ID_PLACE_HOLDER = '${chunk_id}'
 
   def initialize
@@ -225,7 +227,24 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
 
     failovered = false
     begin
-      send_data(hdfs_path, chunk.read)
+      if @store_as and @store_as == "gzip"
+        require 'zlib'
+        require 'tempfile'
+        hdfs_path = "#{hdfs_path}.gz"
+        tmp = Tempfile.new("webhdfs-")
+        begin
+          w = Zlib::GzipWriter.new(tmp)
+          chunk.write_to(w)
+          w.close
+          tmp.close
+          tmp.open
+          send_data(hdfs_path, tmp)
+        ensure
+          tmp.close(true) rescue nil
+        end
+      else
+        send_data(hdfs_path, chunk.read)
+      end
     rescue => e
       log.warn "failed to communicate hdfs cluster, path: #{hdfs_path}"
 
