@@ -61,13 +61,13 @@ kerberos true
     d = create_driver %[
 namenode server.local:14000
 path /hdfs/path/file.%Y%m%d.%H%M.log
-store_as gzip
+compress gzip
 ]
     assert_equal 'server.local', d.instance.instance_eval{ @namenode_host }
     assert_equal 14000, d.instance.instance_eval{ @namenode_port }
     assert_equal '/hdfs/path/file.%Y%m%d.%H%M.log', d.instance.path
     assert_equal '%Y%m%d%H%M', d.instance.time_slice_format
-    assert_equal 'gzip', d.instance.store_as
+    assert_equal 'gzip', d.instance.compress
   end
 
   def test_configure_placeholders

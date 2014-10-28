@@ -127,10 +127,10 @@ If you want to compress data before storing it:
       host namenode.your.cluster.local
       port 50070
       path /path/on/hdfs/access.log.%Y%m%d_%H
-      store_as gzip  # currently only support gzip
+      compress gzip  # currently only support gzip
     </match>
 
-Note that if you set `store_as gzip`, then the suffix `.gz` will be added to path.
+Note that if you set `compress gzip`, then the suffix `.gz` will be added to path.
 
 ### Namenode HA / Auto retry for WebHDFS known errors
 

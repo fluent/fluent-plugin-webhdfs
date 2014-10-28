@@ -56,7 +56,7 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
 
   config_param :kerberos, :bool, :default => false
 
-  config_param :store_as, :string, :default => nil
+  config_param :compress, :string, :default => nil
 
   CHUNK_ID_PLACE_HOLDER = '${chunk_id}'
 
@@ -227,7 +227,7 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
 
     failovered = false
     begin
-      if @store_as and @store_as == "gzip"
+      if @compress and @compress == "gzip"
         require 'zlib'
         require 'tempfile'
         hdfs_path = "#{hdfs_path}.gz"
