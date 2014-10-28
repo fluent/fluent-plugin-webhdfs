@@ -57,6 +57,17 @@ kerberos true
     assert_equal '/path/to/ca_file.pem', d.instance.ssl_ca_file
     assert_equal :peer, d.instance.ssl_verify_mode
     assert_equal true, d.instance.kerberos
+
+    d = create_driver %[
+namenode server.local:14000
+path /hdfs/path/file.%Y%m%d.%H%M.log
+store_as gzip
+]
+    assert_equal 'server.local', d.instance.instance_eval{ @namenode_host }
+    assert_equal 14000, d.instance.instance_eval{ @namenode_port }
+    assert_equal '/hdfs/path/file.%Y%m%d.%H%M.log', d.instance.path
+    assert_equal '%Y%m%d%H%M', d.instance.time_slice_format
+    assert_equal 'gzip', d.instance.store_as
   end
 
   def test_configure_placeholders
