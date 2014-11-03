@@ -50,7 +50,7 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
     when 'peer'
       :peer
     else
-      raise ConfigError, "unexpected parameter on ssl_verify_mode: #{val}"
+      raise Fluent::ConfigError, "unexpected parameter on ssl_verify_mode: #{val}"
     end
   end
 
