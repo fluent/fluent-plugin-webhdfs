@@ -56,7 +56,13 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
 
   config_param :kerberos, :bool, :default => false
 
-  config_param :compress, :string, :default => nil
+  SUPPORTED_COMPRESS = ['gzip']
+  config_param :compress, :default => nil do |val|
+    unless SUPPORTED_COMPRESS.include? val
+      raise Fluent::ConfigError, "unsupported compress: #{val}"
+    end
+    val
+  end
 
   CHUNK_ID_PLACE_HOLDER = '${chunk_id}'
 
