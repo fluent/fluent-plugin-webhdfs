@@ -120,6 +120,18 @@ With kerberos authentication:
       kerberos true
     </match>
 
+If you want to compress data before storing it:
+
+    <match access.**>
+      type webhdfs
+      host namenode.your.cluster.local
+      port 50070
+      path /path/on/hdfs/access.log.%Y%m%d_%H
+      compress gzip  # currently only support gzip
+    </match>
+
+Note that if you set `compress gzip`, then the suffix `.gz` will be added to path.
+
 ### Namenode HA / Auto retry for WebHDFS known errors
 
 `fluent-plugin-webhdfs` (v0.2.0 or later) accepts 2 namenodes for Namenode HA (active/standby). Use `standby_namenode` like this:

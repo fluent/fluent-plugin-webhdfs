@@ -57,6 +57,17 @@ kerberos true
     assert_equal '/path/to/ca_file.pem', d.instance.ssl_ca_file
     assert_equal :peer, d.instance.ssl_verify_mode
     assert_equal true, d.instance.kerberos
+
+    d = create_driver %[
+namenode server.local:14000
+path /hdfs/path/file.%Y%m%d.%H%M.log
+compress gzip
+]
+    assert_equal 'server.local', d.instance.instance_eval{ @namenode_host }
+    assert_equal 14000, d.instance.instance_eval{ @namenode_port }
+    assert_equal '/hdfs/path/file.%Y%m%d.%H%M.log', d.instance.path
+    assert_equal '%Y%m%d%H%M', d.instance.time_slice_format
+    assert_equal 'gzip', d.instance.compress
   end
 
   def test_configure_placeholders
@@ -90,4 +101,23 @@ path /hdfs/path/file.%Y%m%d.%H%M.log
           ]
     end
   end
+
+  def test_invalid_configure
+    assert_raise Fluent::ConfigError do
+      create_driver %[
+        namenode server.local:14000
+        path /hdfs/path/file.%Y%m%d.%H%M.log
+        ssl true
+        ssl_verify_mode invalid
+      ]
+    end
+    assert_raise Fluent::ConfigError do
+      create_driver %[
+        namenode server.local:14000
+        path /hdfs/path/file.%Y%m%d.%H%M.log
+        compress invalid
+      ]
+    end
+  end
+
 end

@@ -50,11 +50,19 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
     when 'peer'
       :peer
     else
-      raise ConfigError, "unexpected parameter on ssl_verify_mode: #{val}"
+      raise Fluent::ConfigError, "unexpected parameter on ssl_verify_mode: #{val}"
     end
   end
 
   config_param :kerberos, :bool, :default => false
+
+  SUPPORTED_COMPRESS = ['gzip']
+  config_param :compress, :default => nil do |val|
+    unless SUPPORTED_COMPRESS.include? val
+      raise Fluent::ConfigError, "unsupported compress: #{val}"
+    end
+    val
+  end
 
   CHUNK_ID_PLACE_HOLDER = '${chunk_id}'
 
@@ -216,16 +224,52 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
     end
   end
 
-  def write(chunk)
+  def generate_path(chunk)
     hdfs_path = if @append
                   path_format(chunk.key)
                 else
                   path_format(chunk.key).gsub(CHUNK_ID_PLACE_HOLDER, chunk_unique_id_to_str(chunk.unique_id))
                 end
+    if @compress
+      case @compress
+      when 'gzip'
+        hdfs_path = "#{hdfs_path}.gz"
+      end
+    end
+    hdfs_path
+  end
+
+  def compress_context(chunk, &block)
+    case @compress
+    when 'gzip'
+      require 'zlib'
+      require 'tempfile'
+      tmp = Tempfile.new("webhdfs-")
+      begin
+        w = Zlib::GzipWriter.new(tmp)
+        chunk.write_to(w)
+        w.close
+        tmp.close
+        tmp.open
+        yield tmp
+      ensure
+        tmp.close(true) rescue nil
+      end
+    end
+  end
+
+  def write(chunk)
+    hdfs_path = generate_path(chunk)
 
     failovered = false
     begin
-      send_data(hdfs_path, chunk.read)
+      if @compress
+        compress_context(chunk) do |data|
+          send_data(hdfs_path, data)
+        end
+      else
+        send_data(hdfs_path, chunk.read)
+      end
     rescue => e
       log.warn "failed to communicate hdfs cluster, path: #{hdfs_path}"
 
