@@ -101,4 +101,23 @@ path /hdfs/path/file.%Y%m%d.%H%M.log
           ]
     end
   end
+
+  def test_invalid_configure
+    assert_raise Fluent::ConfigError do
+      create_driver %[
+        namenode server.local:14000
+        path /hdfs/path/file.%Y%m%d.%H%M.log
+        ssl true
+        ssl_verify_mode invalid
+      ]
+    end
+    assert_raise Fluent::ConfigError do
+      create_driver %[
+        namenode server.local:14000
+        path /hdfs/path/file.%Y%m%d.%H%M.log
+        compress invalid
+      ]
+    end
+  end
+
 end
