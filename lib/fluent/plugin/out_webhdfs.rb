@@ -224,29 +224,48 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
     end
   end
 
-  def write(chunk)
+  def generate_path(chunk)
     hdfs_path = if @append
                   path_format(chunk.key)
                 else
                   path_format(chunk.key).gsub(CHUNK_ID_PLACE_HOLDER, chunk_unique_id_to_str(chunk.unique_id))
                 end
+    if @compress
+      case @compress
+      when 'gzip'
+        hdfs_path = "#{hdfs_path}.gz"
+      end
+    end
+    hdfs_path
+  end
+
+  def compress_context(chunk, &block)
+    case @compress
+    when 'gzip'
+      require 'zlib'
+      require 'tempfile'
+      tmp = Tempfile.new("webhdfs-")
+      begin
+        w = Zlib::GzipWriter.new(tmp)
+        chunk.write_to(w)
+        w.close
+        tmp.close
+        tmp.open
+        yield tmp
+      ensure
+        tmp.close(true) rescue nil
+      end
+    end
+  end
+
+  def write(chunk)
+    hdfs_path = generate_path(chunk)
 
     failovered = false
     begin
-      if @compress and @compress == "gzip"
-        require 'zlib'
-        require 'tempfile'
-        hdfs_path = "#{hdfs_path}.gz"
-        tmp = Tempfile.new("webhdfs-")
-        begin
-          w = Zlib::GzipWriter.new(tmp)
-          chunk.write_to(w)
-          w.close
-          tmp.close
-          tmp.open
-          send_data(hdfs_path, tmp)
-        ensure
-          tmp.close(true) rescue nil
+      if @compress
+        compress_context(chunk) do |data|
+          send_data(hdfs_path, data)
         end
       else
         send_data(hdfs_path, chunk.read)
