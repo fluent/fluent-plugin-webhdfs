@@ -5,6 +5,9 @@ class WebHDFSOutputTest < Test::Unit::TestCase
 host namenode.local
 path /hdfs/path/file.%Y%m%d.log
   ]
+  def setup
+    Fluent::Test.setup
+  end
 
   def create_driver(conf=CONFIG,tag='test')
     Fluent::Test::OutputTestDriver.new(Fluent::WebHDFSOutput, tag).configure(conf)
