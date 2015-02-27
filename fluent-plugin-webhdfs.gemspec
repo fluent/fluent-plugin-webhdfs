@@ -16,6 +16,7 @@ Gem::Specification.new do |gem|
   gem.require_paths = ["lib"]
 
   gem.add_development_dependency "rake"
+  gem.add_development_dependency "test-unit"
   gem.add_runtime_dependency "fluentd", '>= 0.10.53'
   gem.add_runtime_dependency "fluent-mixin-plaintextformatter", '>= 0.2.1'
   gem.add_runtime_dependency "fluent-mixin-config-placeholders", ">= 0.3.0"
