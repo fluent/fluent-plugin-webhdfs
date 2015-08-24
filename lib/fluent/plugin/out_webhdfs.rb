@@ -56,7 +56,7 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
 
   config_param :kerberos, :bool, :default => false
 
-  SUPPORTED_COMPRESS = ['gzip']
+  SUPPORTED_COMPRESS = ['gzip','lzo','bz2']
   config_param :compress, :default => nil do |val|
     unless SUPPORTED_COMPRESS.include? val
       raise Fluent::ConfigError, "unsupported compress: #{val}"
@@ -234,6 +234,10 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
       case @compress
       when 'gzip'
         hdfs_path = "#{hdfs_path}.gz"
+      when 'lzo'
+        hdfs_path = "#{hdfs_path}.lzo"
+      when 'bz2'
+        hdfs_path = "#{hdfs_path}.bz2"
       end
     end
     hdfs_path
@@ -255,7 +259,35 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
       ensure
         tmp.close(true) rescue nil
       end
-    end
+    when 'lzo'
+     require 'lzoruby'
+     require 'tempfile'
+     tmp = Tempfile.new("webhdfs-")
+     begin
+       w = LZO.compress(tmp)
+       chunk.write_to(w)
+       w.close
+       tmp.close
+       tmp.open
+       yield tmp
+     ensure
+       tmp.close(true) rescue nil
+     end
+   when 'bz2'
+     require 'bzip2'
+     require 'tempfile'
+     tmp = Tempfile.new("webhdfs-")
+     begin
+       w = Bzip2::Writer.new(tmp)
+       chunk.write_to(w)
+       w.close
+       tmp.close
+       tmp.open
+       yield tmp
+     ensure
+       tmp.close(true) rescue nil
+     end
+   end
   end
 
   def write(chunk)
