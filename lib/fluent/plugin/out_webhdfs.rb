@@ -216,7 +216,7 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
     if @append
       begin
         @client.append(path, data)
-      rescue WebHDFS::FileNotFoundError
+      rescue WebHDFS::FileNotFoundError,WebHDFS::ServerError
         @client.create(path, data)
       end
     else
