@@ -205,14 +205,14 @@ If you were usging unstable NameNodes and have wanted to ignore NameNode errors 
 
 ### For unstable Datanodes
 
-With unstable datanodes that frequently downs, appending over WebHDFS may produce broken files. In such cases, specify `append no` and `${chunk_id}` parameter.
+With unstable datanodes that frequently downs, appending over WebHDFS may produce broken files. In such cases, specify `append false` and `${chunk_id}` parameter.
 
     <match access.**>
       type webhdfs
       host namenode.your.cluster.local
       port 50070
       
-      append no
+      append false
       path   /log/access/%Y%m%d/${hostname}.${chunk_id}.log
     </match>
 
