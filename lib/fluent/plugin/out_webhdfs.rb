@@ -9,40 +9,66 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
   config_set_default :buffer_type, 'memory'
   config_set_default :time_slice_format, '%Y%m%d'
 
+  # For fluentd v0.12.16 or earlier
+  class << self
+    unless method_defined?(:desc)
+      def desc(description)
+      end
+    end
+  end
+
+  desc 'WebHDFS/HttpFs host'
   config_param :host, :string, :default => nil
+  desc 'WebHDFS/HttpFs port'
   config_param :port, :integer, :default => 50070
+  desc 'Namenode (host:port)'
   config_param :namenode, :string, :default => nil # host:port
+  desc 'Standby namenode for Namenode HA (host:port)'
   config_param :standby_namenode, :string, :default => nil # host:port
 
+  desc 'Ignore errors on start up'
   config_param :ignore_start_check_error, :bool, :default => false
 
   include Fluent::Mixin::ConfigPlaceholders
 
+  desc 'Output file path on HDFS'
   config_param :path, :string
+  desc 'User name for pseudo authentication'
   config_param :username, :string, :default => nil
 
+  desc 'Store data over HttpFs instead of WebHDFS'
   config_param :httpfs, :bool, :default => false
 
+  desc 'Number of seconds to wait for the connection to open'
   config_param :open_timeout, :integer, :default => 30 # from ruby net/http default
+  desc 'Number of seconds to wait for one block to be read'
   config_param :read_timeout, :integer, :default => 60 # from ruby net/http default
 
+  desc 'Retry automatically when known errors of HDFS are occurred'
   config_param :retry_known_errors, :bool, :default => false
+  desc 'Retry interval'
   config_param :retry_interval, :integer, :default => nil
+  desc 'The number of retries'
   config_param :retry_times, :integer, :default => nil
 
   # how many times of write failure before switch to standby namenode
   # by default it's 11 times that costs 1023 seconds inside fluentd,
   # which is considered enough to exclude the scenes that caused by temporary network fail or single datanode fail
+  desc 'How many times of write failure before switch to standby namenode'
   config_param :failures_before_use_standby, :integer, :default => 11
 
   include Fluent::Mixin::PlainTextFormatter
 
   config_param :default_tag, :string, :default => 'tag_missing'
 
+  desc 'Append data or not'
   config_param :append, :bool, :default => true
 
+  desc 'Use SSL or not'
   config_param :ssl, :bool, :default => false
+  desc 'OpenSSL certificate authority file'
   config_param :ssl_ca_file, :string, :default => nil
+  desc 'OpenSSL verify mode (none,peer)'
   config_param :ssl_verify_mode, :default => nil do |val|
     case val
     when 'none'
@@ -54,9 +80,11 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
     end
   end
 
+  desc 'Use kerberos authentication or not'
   config_param :kerberos, :bool, :default => false
 
   SUPPORTED_COMPRESS = ['gzip']
+  desc "Compress method (#{SUPPORTED_COMPRESS.join(',')})"
   config_param :compress, :default => nil do |val|
     unless SUPPORTED_COMPRESS.include? val
       raise Fluent::ConfigError, "unsupported compress: #{val}"
