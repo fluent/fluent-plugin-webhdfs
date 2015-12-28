@@ -278,8 +278,7 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
         w = Zlib::GzipWriter.new(tmp)
         chunk.write_to(w)
         w.close
-        tmp.close
-        tmp.open
+        tmp.rewind
         yield tmp
       ensure
         tmp.close(true) rescue nil
