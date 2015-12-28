@@ -21,4 +21,5 @@ Gem::Specification.new do |gem|
   gem.add_runtime_dependency "fluent-mixin-plaintextformatter", '>= 0.2.1'
   gem.add_runtime_dependency "fluent-mixin-config-placeholders", ">= 0.3.0"
   gem.add_runtime_dependency "webhdfs", '>= 0.6.0'
+  gem.add_runtime_dependency "bzip2-ffi"
 end

@@ -85,7 +85,7 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
   desc 'Use kerberos authentication or not'
   config_param :kerberos, :bool, :default => false
 
-  SUPPORTED_COMPRESS = ['gzip']
+  SUPPORTED_COMPRESS = ['gzip', 'bzip2']
   desc "Compress method (#{SUPPORTED_COMPRESS.join(',')})"
   config_param :compress, :default => nil do |val|
     unless SUPPORTED_COMPRESS.include? val
@@ -264,6 +264,8 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
       case @compress
       when 'gzip'
         hdfs_path = "#{hdfs_path}.gz"
+      when 'bzip2'
+        hdfs_path = "#{hdfs_path}.bz2"
       end
     end
     hdfs_path
@@ -278,6 +280,18 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
         w = Zlib::GzipWriter.new(tmp)
         chunk.write_to(w)
         w.close
+        tmp.rewind
+        yield tmp
+      ensure
+        tmp.close(true) rescue nil
+      end
+    when 'bzip2'
+      require 'bzip2/ffi'
+      tmp = Tempfile.new("webhdfs-")
+      begin
+        Bzip2::FFI::Writer.open(tmp) do |writer|
+          chunk.write_to(writer)
+        end
         tmp.rewind
         yield tmp
       ensure
