@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+require 'tempfile'
+
 require 'fluent/mixin/config_placeholders'
 require 'fluent/mixin/plaintextformatter'
 
@@ -271,7 +273,6 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
     case @compress
     when 'gzip'
       require 'zlib'
-      require 'tempfile'
       tmp = Tempfile.new("webhdfs-")
       begin
         w = Zlib::GzipWriter.new(tmp)
