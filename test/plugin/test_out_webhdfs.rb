@@ -68,7 +68,8 @@ kerberos true
     end
 
     data(gzip: ['gzip', Fluent::WebHDFSOutput::GzipCompressor],
-         bzip2: ['bzip2', Fluent::WebHDFSOutput::Bzip2Compressor])
+         bzip2: ['bzip2', Fluent::WebHDFSOutput::Bzip2Compressor],
+         lzo: ['lzo_command', Fluent::WebHDFSOutput::LZOCommandCompressor])
     def test_compress(data)
       compress_type, compressor_class = data
       d = create_driver %[
