@@ -345,58 +345,13 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
     end
   end
 
-  class TextCompressor < Compressor
-    def ext
-      ""
-    end
-
-    def compress(chunk, tmp)
-      chunk.write_to(tmp)
-    end
-  end
-
-  class GzipCompressor < Compressor
-    def initialize(options = {})
-      require "zlib"
-    end
-
-    def ext
-      ".gz"
-    end
-
-    def compress(chunk, tmp)
-      w = Zlib::GzipWriter.new(tmp)
-      chunk.write_to(w)
-      w.close
-    end
-  end
-
-  class Bzip2Compressor < Compressor
-    def initialize(options = {})
-      require "bzip2/ffi"
-    end
-
-    def ext
-      ".bz2"
-    end
-
-    def compress(chunk, tmp)
-      Bzip2::FFI::Writer.open(tmp) do |writer|
-        chunk.write_to(writer)
-      end
-    end
-  end
-
   COMPRESSOR_REGISTRY = Fluent::Registry.new(:webhdfs_compressor_type, 'fluent/plugin/webhdfs_compressor_')
-  {
-    'text' => TextCompressor,
-    'gzip' => GzipCompressor,
-    'bzip2' => Bzip2Compressor
-  }.each do |name, compressor|
-    COMPRESSOR_REGISTRY.register(name, compressor)
-  end
 
   def self.register_compressor(name, compressor)
     COMPRESSOR_REGISTRY.register(name, compressor)
   end
 end
+
+require 'fluent/plugin/webhdfs_compressor_text'
+require 'fluent/plugin/webhdfs_compressor_gzip'
+require 'fluent/plugin/webhdfs_compressor_bzip2'
