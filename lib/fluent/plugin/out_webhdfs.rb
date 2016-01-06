@@ -96,6 +96,8 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
 
   CHUNK_ID_PLACE_HOLDER = '${chunk_id}'
 
+  attr_reader :compressor
+
   def initialize
     super
     require 'net/http'

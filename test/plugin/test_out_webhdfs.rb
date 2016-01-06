@@ -67,10 +67,10 @@ kerberos true
       assert_equal true, d.instance.kerberos
     end
 
-    data(gzip: 'gzip',
-         bzip2: 'bzip2')
+    data(gzip: ['gzip', Fluent::WebHDFSOutput::GzipCompressor],
+         bzip2: ['bzip2', Fluent::WebHDFSOutput::Bzip2Compressor])
     def test_compress(data)
-      compress_type = data
+      compress_type, compressor_class = data
       d = create_driver %[
 namenode server.local:14000
 path /hdfs/path/file.%Y%m%d.%H%M.log
@@ -81,6 +81,7 @@ compress #{compress_type}
       assert_equal '/hdfs/path/file.%Y%m%d.%H%M.log', d.instance.path
       assert_equal '%Y%m%d%H%M', d.instance.time_slice_format
       assert_equal compress_type, d.instance.compress
+      assert_equal compressor_class, d.instance.compressor.class
     end
 
     def test_placeholders
