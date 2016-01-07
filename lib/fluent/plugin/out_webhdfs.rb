@@ -96,11 +96,15 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
 
   CHUNK_ID_PLACE_HOLDER = '${chunk_id}'
 
+  attr_reader :compressor
+
   def initialize
     super
     require 'net/http'
     require 'time'
     require 'webhdfs'
+
+    @compressor = nil
   end
 
   # Define `log` method for v0.10.42 or earlier
@@ -120,6 +124,13 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
     end
 
     super
+
+    begin
+      @compressor = COMPRESSOR_REGISTRY.lookup(@compress || 'text').new
+    rescue
+      $log.warn "#{@comress} not found. Use 'text' instead"
+      @compressor = COMPRESSOR_REGISTRY.lookup('text').new
+    end
 
     if @host
       @namenode_host = @host
@@ -260,43 +271,18 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
                 else
                   path_format(chunk.key).gsub(CHUNK_ID_PLACE_HOLDER, chunk_unique_id_to_str(chunk.unique_id))
                 end
-    if @compress
-      case @compress
-      when 'gzip'
-        hdfs_path = "#{hdfs_path}.gz"
-      when 'bzip2'
-        hdfs_path = "#{hdfs_path}.bz2"
-      end
-    end
+    hdfs_path = "#{hdfs_path}#{@compressor.ext}"
     hdfs_path
   end
 
   def compress_context(chunk, &block)
-    case @compress
-    when 'gzip'
-      require 'zlib'
+    begin
       tmp = Tempfile.new("webhdfs-")
-      begin
-        w = Zlib::GzipWriter.new(tmp)
-        chunk.write_to(w)
-        w.close
-        tmp.rewind
-        yield tmp
-      ensure
-        tmp.close(true) rescue nil
-      end
-    when 'bzip2'
-      require 'bzip2/ffi'
-      tmp = Tempfile.new("webhdfs-")
-      begin
-        Bzip2::FFI::Writer.open(tmp) do |writer|
-          chunk.write_to(writer)
-        end
-        tmp.rewind
-        yield tmp
-      ensure
-        tmp.close(true) rescue nil
-      end
+      @compressor.compress(chunk, tmp)
+      tmp.rewind
+      yield tmp
+    ensure
+      tmp.close(true) rescue nil
     end
   end
 
@@ -305,12 +291,8 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
 
     failovered = false
     begin
-      if @compress
-        compress_context(chunk) do |data|
-          send_data(hdfs_path, data)
-        end
-      else
-        send_data(hdfs_path, chunk.read)
+      compress_context(chunk) do |data|
+        send_data(hdfs_path, data)
       end
     rescue => e
       log.warn "failed to communicate hdfs cluster, path: #{hdfs_path}"
@@ -333,4 +315,45 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
     end
     hdfs_path
   end
+
+  class Compressor
+    include Fluent::Configurable
+
+    def initialise(options = {})
+      super()
+    end
+
+    def configure(conf)
+      super
+    end
+
+    def ext
+    end
+
+    def compress(chunk)
+    end
+
+    private
+
+    def check_command(command, algo = nil)
+      require 'open3'
+
+      algo = command if algo.nil?
+      begin
+        Open3.capture3("#{command} -V")
+      rescue Errno::ENOENT
+        raise ConfigError, "'#{command}' utility must be in PATH for #{algo} compression"
+      end
+    end
+  end
+
+  COMPRESSOR_REGISTRY = Fluent::Registry.new(:webhdfs_compressor_type, 'fluent/plugin/webhdfs_compressor_')
+
+  def self.register_compressor(name, compressor)
+    COMPRESSOR_REGISTRY.register(name, compressor)
+  end
 end
+
+require 'fluent/plugin/webhdfs_compressor_text'
+require 'fluent/plugin/webhdfs_compressor_gzip'
+require 'fluent/plugin/webhdfs_compressor_bzip2'
