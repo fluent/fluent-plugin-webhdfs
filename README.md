@@ -17,10 +17,10 @@ And you can specify output file path as 'path /path/to/dir/access.%Y%m%d.log', t
 
 ### WebHDFSOutput
 
-To store data by time,tag,json (same with 'type file') over WebHDFS:
+To store data by time,tag,json (same with '@type file') over WebHDFS:
 
     <match access.**>
-      type webhdfs
+      @type webhdfs
       host namenode.your.cluster.local
       port 50070
       path /path/on/hdfs/access.log.%Y%m%d_%H.log
@@ -29,7 +29,7 @@ To store data by time,tag,json (same with 'type file') over WebHDFS:
 If you want JSON object only (without time or tag or both on header of lines), specify it by `output_include_time` or `output_include_tag` (default true):
 
     <match access.**>
-      type webhdfs
+      @type webhdfs
       host namenode.your.cluster.local
       port 50070
       path /path/on/hdfs/access.log.%Y%m%d_%H.log
@@ -40,7 +40,7 @@ If you want JSON object only (without time or tag or both on header of lines), s
 To specify namenode, `namenode` is also available:
 
     <match access.**>
-      type     webhdfs
+      @type     webhdfs
       namenode master.your.cluster.local:50070
       path     /path/on/hdfs/access.log.%Y%m%d_%H.log
     </match>
@@ -48,7 +48,7 @@ To specify namenode, `namenode` is also available:
 To store data as LTSV without time and tag over WebHDFS:
 
     <match access.**>
-      type webhdfs
+      @type webhdfs
       host namenode.your.cluster.local
       port 50070
       path /path/on/hdfs/access.log.%Y%m%d_%H.log
@@ -58,7 +58,7 @@ To store data as LTSV without time and tag over WebHDFS:
 With username of pseudo authentication:
 
     <match access.**>
-      type webhdfs
+      @type webhdfs
       host namenode.your.cluster.local
       port 50070
       path /path/on/hdfs/access.log.%Y%m%d_%H.log
@@ -68,7 +68,7 @@ With username of pseudo authentication:
 Store data over HttpFs (instead of WebHDFS):
 
     <match access.**>
-      type webhdfs
+      @type webhdfs
       host httpfs.node.your.cluster.local
       port 14000
       path /path/on/hdfs/access.log.%Y%m%d_%H.log
@@ -78,7 +78,7 @@ Store data over HttpFs (instead of WebHDFS):
 Store data as TSV (TAB separated values) of specified keys, without time, with tag (removed prefix 'access'):
 
     <match access.**>
-      type webhdfs
+      @type webhdfs
       host namenode.your.cluster.local
       port 50070
       path /path/on/hdfs/access.log.%Y%m%d_%H.log
@@ -96,7 +96,7 @@ If message doesn't have specified attribute, fluent-plugin-webhdfs outputs 'NULL
 With ssl:
 
     <match access.**>
-      type webhdfs
+      @type webhdfs
       host namenode.your.cluster.local
       port 50070
       path /path/on/hdfs/access.log.%Y%m%d_%H.log
@@ -113,7 +113,7 @@ and [openssl](http://www.ruby-doc.org/stdlib-2.1.3/libdoc/openssl/rdoc/OpenSSL.h
 With kerberos authentication:
 
     <match access.**>
-      type webhdfs
+      @type webhdfs
       host namenode.your.cluster.local
       port 50070
       path /path/on/hdfs/access.log.%Y%m%d_%H.log
@@ -123,7 +123,7 @@ With kerberos authentication:
 If you want to compress data before storing it:
 
     <match access.**>
-      type webhdfs
+      @type webhdfs
       host namenode.your.cluster.local
       port 50070
       path /path/on/hdfs/access.log.%Y%m%d_%H
@@ -137,7 +137,7 @@ Note that if you set `compress gzip`, then the suffix `.gz` will be added to pat
 `fluent-plugin-webhdfs` (v0.2.0 or later) accepts 2 namenodes for Namenode HA (active/standby). Use `standby_namenode` like this:
 
     <match access.**>
-      type             webhdfs
+      @type            webhdfs
       namenode         master1.your.cluster.local:50070
 	  standby_namenode master2.your.cluster.local:50070
       path             /path/on/hdfs/access.log.%Y%m%d_%H.log
@@ -146,7 +146,7 @@ Note that if you set `compress gzip`, then the suffix `.gz` will be added to pat
 And you can also specify to retry known hdfs errors (such like `LeaseExpiredException`) automatically. With this configuration, fluentd doesn't write logs for this errors if retry successed.
 
     <match access.**>
-      type               webhdfs
+      @type              webhdfs
       namenode           master1.your.cluster.local:50070
       path               /path/on/hdfs/access.log.%Y%m%d_%H.log
 	  retry_known_errors yes
@@ -162,7 +162,7 @@ You can use '${hostname}' or '${uuid:random}' placeholders in configuration for 
 For hostname:
 
     <match access.**>
-      type webhdfs
+      @type webhdfs
       host namenode.your.cluster.local
       port 50070
       path /log/access/%Y%m%d/${hostname}.log
@@ -171,7 +171,7 @@ For hostname:
 Or with random filename (to avoid duplicated file name only):
 
     <match access.**>
-      type webhdfs
+      @type webhdfs
       host namenode.your.cluster.local
       port 50070
       path /log/access/%Y%m%d/${uuid:random}.log
@@ -182,7 +182,7 @@ With configurations above, you can handle all of files of '/log/access/20120820/
 For high load cluster nodes, you can specify timeouts for HTTP requests.
 
     <match access.**>
-	  type webhdfs
+	  @type webhdfs
 	  namenode master.your.cluster.local:50070
       path /log/access/%Y%m%d/${hostname}.log
 	  open_timeout 180 # [sec] default: 30
@@ -196,7 +196,7 @@ With default configuration, fluent-plugin-webhdfs checks HDFS filesystem status 
 If you were usging unstable NameNodes and have wanted to ignore NameNode errors on startup of fluentd, enable `ignore_start_check_error` option like below:
 
     <match access.**>
-      type webhdfs
+      @type webhdfs
       host namenode.your.cluster.local
       port 50070
       path /log/access/%Y%m%d/${hostname}.log
@@ -208,7 +208,7 @@ If you were usging unstable NameNodes and have wanted to ignore NameNode errors 
 With unstable datanodes that frequently downs, appending over WebHDFS may produce broken files. In such cases, specify `append no` and `${chunk_id}` parameter.
 
     <match access.**>
-      type webhdfs
+      @type webhdfs
       host namenode.your.cluster.local
       port 50070
       
