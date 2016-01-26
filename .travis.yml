@@ -13,3 +13,8 @@ before_install:
   - gem update bundler
 
 script: bundle exec rake test
+
+gemfile:
+  - Gemfile
+  - gemfiles/fluentd_v0.10.gemfile
+  - gemfiles/fluentd_v0.12.gemfile
