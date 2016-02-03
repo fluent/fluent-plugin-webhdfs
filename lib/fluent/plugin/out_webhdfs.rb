@@ -85,7 +85,7 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
   desc 'Use kerberos authentication or not'
   config_param :kerberos, :bool, :default => false
 
-  SUPPORTED_COMPRESS = ['gzip', 'bzip2', 'lzo_command']
+  SUPPORTED_COMPRESS = ['gzip', 'bzip2', 'snappy', 'lzo_command']
   desc "Compress method (#{SUPPORTED_COMPRESS.join(',')})"
   config_param :compress, :default => nil do |val|
     unless SUPPORTED_COMPRESS.include? val
@@ -357,4 +357,5 @@ end
 require 'fluent/plugin/webhdfs_compressor_text'
 require 'fluent/plugin/webhdfs_compressor_gzip'
 require 'fluent/plugin/webhdfs_compressor_bzip2'
+require 'fluent/plugin/webhdfs_compressor_snappy'
 require 'fluent/plugin/webhdfs_compressor_lzo_command'
