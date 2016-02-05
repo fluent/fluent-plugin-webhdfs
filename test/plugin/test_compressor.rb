@@ -15,7 +15,7 @@ class CompressorTest < Test::Unit::TestCase
     def test_compress
       chunk = Fluent::MemoryBufferChunk.new("test")
       chunk << "hello snappy\n" * 32 * 1024
-      io = Tempfile.new
+      io = Tempfile.new("snappy-")
       @compressor.compress(chunk, io)
       io.open
       assert(chunk.size > io.read.bytesize)
