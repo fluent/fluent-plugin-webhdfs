@@ -69,6 +69,7 @@ kerberos true
 
     data(gzip: ['gzip', Fluent::WebHDFSOutput::GzipCompressor],
          bzip2: ['bzip2', Fluent::WebHDFSOutput::Bzip2Compressor],
+         snappy: ['snappy', Fluent::WebHDFSOutput::SnappyCompressor],
          lzo: ['lzo_command', Fluent::WebHDFSOutput::LZOCommandCompressor])
     def test_compress(data)
       compress_type, compressor_class = data

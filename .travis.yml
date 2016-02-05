@@ -11,6 +11,11 @@ branches:
   only:
     - master
 
+addons:
+  apt:
+    packages:
+      - libsnappy-dev
+
 before_install:
   - gem update bundler
 
