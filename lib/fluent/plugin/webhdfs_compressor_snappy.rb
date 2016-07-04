@@ -4,7 +4,11 @@ module Fluent
       WebHDFSOutput.register_compressor('snappy', self)
 
       def initialize(options = {})
-        require "snappy"
+        begin
+          require "snappy"
+        rescue LoadError
+          $log.error("Install snappy before use snappy compressor")
+        end
       end
 
       def ext
