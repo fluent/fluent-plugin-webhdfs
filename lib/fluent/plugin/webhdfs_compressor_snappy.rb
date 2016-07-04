@@ -7,7 +7,7 @@ module Fluent
         begin
           require "snappy"
         rescue LoadError
-          $log.error("Install snappy before use snappy compressor")
+          raise Fluent::ConfigError, "Install snappy before use snappy compressor"
         end
       end
 

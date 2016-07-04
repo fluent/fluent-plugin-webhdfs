@@ -127,6 +127,8 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
 
     begin
       @compressor = COMPRESSOR_REGISTRY.lookup(@compress || 'text').new
+    rescue Fluent::ConfigError
+      raise
     rescue
       $log.warn "#{@comress} not found. Use 'text' instead"
       @compressor = COMPRESSOR_REGISTRY.lookup('text').new
