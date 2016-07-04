@@ -73,11 +73,15 @@ kerberos true
          lzo: ['lzo_command', Fluent::WebHDFSOutput::LZOCommandCompressor])
     def test_compress(data)
       compress_type, compressor_class = data
-      d = create_driver %[
+      begin
+        d = create_driver %[
 namenode server.local:14000
 path /hdfs/path/file.%Y%m%d.%H%M.log
 compress #{compress_type}
-]
+        ]
+      rescue Fluent::ConfigError => ex
+        omit ex.message
+      end
       assert_equal 'server.local', d.instance.instance_eval{ @namenode_host }
       assert_equal 14000, d.instance.instance_eval{ @namenode_port }
       assert_equal '/hdfs/path/file.%Y%m%d.%H%M.log', d.instance.path
