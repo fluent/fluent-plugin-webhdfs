@@ -1,6 +1,9 @@
 require "helper"
 require "fluent/plugin/buf_memory"
-require "snappy"
+begin
+  require "snappy"
+rescue LoadError
+end
 
 class CompressorTest < Test::Unit::TestCase
   class Snappy < self
@@ -11,6 +14,7 @@ class CompressorTest < Test::Unit::TestCase
     ]
 
     def setup
+      omit unless Object.const_defined?(:Snappy)
       Fluent::Test.setup
       @compressor = Fluent::WebHDFSOutput::SnappyCompressor.new
     end
