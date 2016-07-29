@@ -1,6 +1,9 @@
 require "helper"
 require "fluent/plugin/buf_memory"
-require "snappy"
+begin
+  require "snappy"
+rescue LoadError
+end
 
 class CompressorTest < Test::Unit::TestCase
   class Snappy < self
@@ -11,6 +14,7 @@ class CompressorTest < Test::Unit::TestCase
     ]
 
     def setup
+      omit unless Object.const_defined?(:Snappy)
       Fluent::Test.setup
       @compressor = Fluent::WebHDFSOutput::SnappyCompressor.new
     end
@@ -42,7 +46,8 @@ class CompressorTest < Test::Unit::TestCase
       io = Tempfile.new("snappy-")
       @compressor.compress(chunk, io)
       io.open
-      assert(chunk.size > io.read.bytesize)
+      chunk_bytesize = chunk.respond_to?(:bytesize) ? chunk.bytesize : chunk.size
+      assert(chunk_bytesize > io.read.bytesize)
       io.rewind
       reader = ::Snappy::Reader.new(io)
       assert_equal(chunk.read, reader.read)
