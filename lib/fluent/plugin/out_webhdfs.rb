@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 
+require 'net/http'
+require 'time'
+require 'webhdfs'
 require 'tempfile'
 
 require 'fluent/mixin/config_placeholders'
@@ -100,10 +103,6 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
 
   def initialize
     super
-    require 'net/http'
-    require 'time'
-    require 'webhdfs'
-
     @compressor = nil
   end
 
