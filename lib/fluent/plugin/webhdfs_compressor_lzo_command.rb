@@ -1,5 +1,5 @@
-module Fluent
-  class WebHDFSOutput
+module Fluent::Plugin
+  class WebHDFSOutput < Output
     class LZOCommandCompressor < Compressor
       WebHDFSOutput.register_compressor('lzo_command', self)
 

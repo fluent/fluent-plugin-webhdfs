@@ -9,8 +9,8 @@ path /hdfs/path/file.%Y%m%d.log
     Fluent::Test.setup
   end
 
-  def create_driver(conf=CONFIG,tag='test')
-    Fluent::Test::OutputTestDriver.new(Fluent::WebHDFSOutput, tag).configure(conf)
+  def create_driver(conf = CONFIG)
+    Fluent::Test::Driver::Output.new(Fluent::Plugin::WebHDFSOutput).configure(conf)
   end
 
   class ConfigureTest < self
@@ -67,10 +67,10 @@ kerberos true
       assert_equal true, d.instance.kerberos
     end
 
-    data(gzip: ['gzip', Fluent::WebHDFSOutput::GzipCompressor],
-         bzip2: ['bzip2', Fluent::WebHDFSOutput::Bzip2Compressor],
-         snappy: ['snappy', Fluent::WebHDFSOutput::SnappyCompressor],
-         lzo: ['lzo_command', Fluent::WebHDFSOutput::LZOCommandCompressor])
+    data(gzip: ['gzip', Fluent::Plugin::WebHDFSOutput::GzipCompressor],
+         bzip2: ['bzip2', Fluent::Plugin::WebHDFSOutput::Bzip2Compressor],
+         snappy: ['snappy', Fluent::Plugin::WebHDFSOutput::SnappyCompressor],
+         lzo: ['lzo_command', Fluent::Plugin::WebHDFSOutput::LZOCommandCompressor])
     def test_compress(data)
       compress_type, compressor_class = data
       begin

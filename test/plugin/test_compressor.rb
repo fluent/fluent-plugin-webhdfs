@@ -16,11 +16,11 @@ class CompressorTest < Test::Unit::TestCase
     def setup
       omit unless Object.const_defined?(:Snappy)
       Fluent::Test.setup
-      @compressor = Fluent::WebHDFSOutput::SnappyCompressor.new
+      @compressor = Fluent::Plugin::WebHDFSOutput::SnappyCompressor.new
     end
 
-    def create_driver(conf=CONFIG,tag='test')
-      Fluent::Test::OutputTestDriver.new(Fluent::WebHDFSOutput, tag).configure(conf)
+    def create_driver(conf = CONFIG)
+      Fluent::Test::Driver::Output.new(Fluent::Plugin::WebHDFSOutput).configure(conf)
     end
 
     def test_ext

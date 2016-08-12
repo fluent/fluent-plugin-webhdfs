@@ -4,11 +4,12 @@ require 'net/http'
 require 'time'
 require 'webhdfs'
 require 'tempfile'
+require 'fluent/plugin/output'
 
 require 'fluent/mixin/config_placeholders'
 require 'fluent/mixin/plaintextformatter'
 
-class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
+class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
   Fluent::Plugin.register_output('webhdfs', self)
 
   config_set_default :buffer_type, 'memory'

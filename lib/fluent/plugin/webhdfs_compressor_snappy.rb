@@ -1,5 +1,5 @@
-module Fluent
-  class WebHDFSOutput < Fluent::TimeSlicedOutput
+module Fluent::Plugin
+  class WebHDFSOutput < Output
     class SnappyCompressor < Compressor
       WebHDFSOutput.register_compressor('snappy', self)
 
