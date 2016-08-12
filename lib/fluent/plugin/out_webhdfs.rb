@@ -15,14 +15,6 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
   config_set_default :buffer_type, 'memory'
   config_set_default :time_slice_format, '%Y%m%d'
 
-  # For fluentd v0.12.16 or earlier
-  class << self
-    unless method_defined?(:desc)
-      def desc(description)
-      end
-    end
-  end
-
   desc 'WebHDFS/HttpFs host'
   config_param :host, :string, :default => nil
   desc 'WebHDFS/HttpFs port'
@@ -105,11 +97,6 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
   def initialize
     super
     @compressor = nil
-  end
-
-  # Define `log` method for v0.10.42 or earlier
-  unless method_defined?(:log)
-    define_method("log") { $log }
   end
 
   def configure(conf)
