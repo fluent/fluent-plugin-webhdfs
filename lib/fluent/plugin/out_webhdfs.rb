@@ -12,8 +12,11 @@ require 'fluent/mixin/plaintextformatter'
 class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
   Fluent::Plugin.register_output('webhdfs', self)
 
-  config_set_default :buffer_type, 'memory'
-  config_set_default :time_slice_format, '%Y%m%d'
+  helpers :compat_parameters
+
+  config_section :buffer do
+    config_set_default :@type, 'memory'
+  end
 
   desc 'WebHDFS/HttpFs host'
   config_param :host, :string, :default => nil
@@ -92,23 +95,27 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
 
   CHUNK_ID_PLACE_HOLDER = '${chunk_id}'
 
-  attr_reader :compressor
+  attr_reader :compressor, :time_slice_format
 
   def initialize
     super
     @compressor = nil
+    @time_slice_format = "%Y%m%d"
   end
 
   def configure(conf)
     if conf['path']
       if conf['path'].index('%S')
-        conf['time_slice_format'] = '%Y%m%d%H%M%S'
+        @time_slice_format = '%Y%m%d%H%M%S'
       elsif conf['path'].index('%M')
-        conf['time_slice_format'] = '%Y%m%d%H%M'
+        @time_slice_format = '%Y%m%d%H%M'
       elsif conf['path'].index('%H')
-        conf['time_slice_format'] = '%Y%m%d%H'
+        @time_slice_format = '%Y%m%d%H'
       end
     end
+    conf["time_slice_format"] = @time_slice_format
+
+    compat_parameters_convert(conf, :buffer)
 
     super
 
