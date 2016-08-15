@@ -12,6 +12,7 @@ require 'test/unit'
 $LOAD_PATH.unshift(File.join(File.dirname(__FILE__), '..', 'lib'))
 $LOAD_PATH.unshift(File.dirname(__FILE__))
 require 'fluent/test'
+require 'fluent/test/helpers'
 require 'fluent/test/driver/output'
 unless ENV.has_key?('VERBOSE')
   nulllogger = Object.new
@@ -22,6 +23,8 @@ unless ENV.has_key?('VERBOSE')
   }
   $log = nulllogger
 end
+
+include Fluent::Test::Helpers
 
 require 'fluent/plugin/out_webhdfs'
 

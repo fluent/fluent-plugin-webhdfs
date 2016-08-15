@@ -95,25 +95,20 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
 
   CHUNK_ID_PLACE_HOLDER = '${chunk_id}'
 
-  attr_reader :compressor, :time_slice_format
+  attr_reader :compressor
 
   def initialize
     super
     @compressor = nil
-    @time_slice_format = "%Y%m%d"
   end
 
   def configure(conf)
-    if conf['path']
-      if conf['path'].index('%S')
-        @time_slice_format = '%Y%m%d%H%M%S'
-      elsif conf['path'].index('%M')
-        @time_slice_format = '%Y%m%d%H%M'
-      elsif conf['path'].index('%H')
-        @time_slice_format = '%Y%m%d%H'
-      end
-    end
-    conf["time_slice_format"] = @time_slice_format
+    conf["time_slice_format"] = case conf["path"]
+                                when /%S/ then "%Y%m%d%H%M%S"
+                                when /%M/ then "%Y%m%d%H%M"
+                                when /%H/ then "%Y%m%d%H"
+                                else "%Y%m%d"
+                                end
 
     compat_parameters_convert(conf, :buffer)
 
@@ -228,8 +223,8 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
     super
   end
 
-  def path_format(chunk_key)
-    Time.strptime(chunk_key, @time_slice_format).strftime(@path)
+  def path_format(metadata)
+    extract_placeholders(@path, metadata)
   end
 
   def is_standby_exception(e)
@@ -263,9 +258,9 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
 
   def generate_path(chunk)
     hdfs_path = if @append
-                  path_format(chunk.key)
+                  path_format(chunk.metadata)
                 else
-                  path_format(chunk.key).gsub(CHUNK_ID_PLACE_HOLDER, chunk_unique_id_to_str(chunk.unique_id))
+                  path_format(chunk.metadata).gsub(CHUNK_ID_PLACE_HOLDER, chunk_unique_id_to_str(chunk.unique_id))
                 end
     hdfs_path = "#{hdfs_path}#{@compressor.ext}"
     hdfs_path

@@ -19,7 +19,6 @@ path /hdfs/path/file.%Y%m%d.log
       assert_equal 'namenode.local', d.instance.instance_eval{ @namenode_host }
       assert_equal 50070, d.instance.instance_eval{ @namenode_port }
       assert_equal '/hdfs/path/file.%Y%m%d.log', d.instance.path
-      assert_equal '%Y%m%d', d.instance.time_slice_format
       assert_equal false, d.instance.httpfs
       assert_nil d.instance.username
       assert_equal false, d.instance.ignore_start_check_error
@@ -43,7 +42,6 @@ username hdfs_user
       assert_equal 'server.local', d.instance.instance_eval{ @namenode_host }
       assert_equal 14000, d.instance.instance_eval{ @namenode_port }
       assert_equal '/hdfs/path/file.%Y%m%d.%H%M.log', d.instance.path
-      assert_equal '%Y%m%d%H%M', d.instance.time_slice_format
       assert_equal true, d.instance.httpfs
       assert_equal 'hdfs_user', d.instance.username
     end
@@ -60,7 +58,6 @@ kerberos true
       assert_equal 'server.local', d.instance.instance_eval{ @namenode_host }
       assert_equal 14000, d.instance.instance_eval{ @namenode_port }
       assert_equal '/hdfs/path/file.%Y%m%d.%H%M.log', d.instance.path
-      assert_equal '%Y%m%d%H%M', d.instance.time_slice_format
       assert_equal true, d.instance.ssl
       assert_equal '/path/to/ca_file.pem', d.instance.ssl_ca_file
       assert_equal :peer, d.instance.ssl_verify_mode
@@ -85,7 +82,6 @@ compress #{compress_type}
       assert_equal 'server.local', d.instance.instance_eval{ @namenode_host }
       assert_equal 14000, d.instance.instance_eval{ @namenode_port }
       assert_equal '/hdfs/path/file.%Y%m%d.%H%M.log', d.instance.path
-      assert_equal '%Y%m%d%H%M', d.instance.time_slice_format
       assert_equal compress_type, d.instance.compress
       assert_equal compressor_class, d.instance.compressor.class
     end
@@ -102,9 +98,10 @@ path /hdfs/${hostname}/file.%Y%m%d%H.log
     class PathFormatTest < self
       def test_default
         d = create_driver
+        time = event_time("2012-07-18 15:03:00 +0900")
+        metadata = d.instance.metadata("test", time, {})
         assert_equal '/hdfs/path/file.%Y%m%d.log', d.instance.path
-        assert_equal '%Y%m%d', d.instance.time_slice_format
-        assert_equal '/hdfs/path/file.20120718.log', d.instance.path_format('20120718')
+        assert_equal '/hdfs/path/file.20120718.log', d.instance.path_format(metadata)
       end
 
       def test_time_slice_format
@@ -112,9 +109,10 @@ path /hdfs/${hostname}/file.%Y%m%d%H.log
 namenode server.local:14000
 path /hdfs/path/file.%Y%m%d.%H%M.log
 ]
+        time = event_time("2012-07-18 15:03:00 +0900")
+        metadata = d.instance.metadata("test", time, {})
         assert_equal '/hdfs/path/file.%Y%m%d.%H%M.log', d.instance.path
-        assert_equal '%Y%m%d%H%M', d.instance.time_slice_format
-        assert_equal '/hdfs/path/file.20120718.1503.log', d.instance.path_format('201207181503')
+        assert_equal '/hdfs/path/file.20120718.1503.log', d.instance.path_format(metadata)
       end
     end
 
