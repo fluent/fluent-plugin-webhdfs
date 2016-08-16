@@ -112,8 +112,9 @@ class WebHDFSOutputTest < Test::Unit::TestCase
         d = create_driver
         time = event_time("2012-07-18 15:03:00 +0900")
         metadata = d.instance.metadata("test", time, {})
+        chunk = d.instance.buffer.generate_chunk(metadata)
         assert_equal '/hdfs/path/file.%Y%m%d.log', d.instance.path
-        assert_equal '/hdfs/path/file.20120718.log', d.instance.path_format(metadata)
+        assert_equal '/hdfs/path/file.20120718.log', d.instance.generate_path(chunk)
       end
 
       def test_time_slice_format
@@ -126,8 +127,9 @@ class WebHDFSOutputTest < Test::Unit::TestCase
 
         time = event_time("2012-07-18 15:03:00 +0900")
         metadata = d.instance.metadata("test", time, {})
+        chunk = d.instance.buffer.generate_chunk(metadata)
         assert_equal '/hdfs/path/file.%Y%m%d.%H%M.log', d.instance.path
-        assert_equal '/hdfs/path/file.20120718.1503.log', d.instance.path_format(metadata)
+        assert_equal '/hdfs/path/file.20120718.1503.log', d.instance.generate_path(chunk)
       end
     end
 

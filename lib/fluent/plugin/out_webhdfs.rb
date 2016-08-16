@@ -222,10 +222,6 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
     end
   end
 
-  def path_format(metadata)
-    extract_placeholders(@path, metadata)
-  end
-
   def is_standby_exception(e)
     e.is_a?(WebHDFS::IOError) && e.message.match(/org\.apache\.hadoop\.ipc\.StandbyException/)
   end
@@ -253,9 +249,9 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
 
   def generate_path(chunk)
     hdfs_path = if @append
-                  path_format(chunk.metadata)
+                  extract_placeholders(@path, chunk.metadata)
                 else
-                  path_format(chunk.metadata).gsub(CHUNK_ID_PLACE_HOLDER, dump_unique_id(chunk.unique_id))
+                  extract_placeholders(@path, chunk.metadata).gsub(CHUNK_ID_PLACE_HOLDER, dump_unique_id(chunk.unique_id))
                 end
     hdfs_path = "#{hdfs_path}#{@compressor.ext}"
     hdfs_path
