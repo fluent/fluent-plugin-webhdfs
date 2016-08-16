@@ -1,10 +1,12 @@
 require 'helper'
 
 class WebHDFSOutputTest < Test::Unit::TestCase
-  CONFIG = %[
-host namenode.local
-path /hdfs/path/file.%Y%m%d.log
-  ]
+  CONFIG = config_element(
+    "ROOT", "", {
+      "host" => "namenode.local",
+      "path" => "/hdfs/path/file.%Y%m%d.log"
+    })
+
   def setup
     Fluent::Test.setup
   end
@@ -33,12 +35,15 @@ path /hdfs/path/file.%Y%m%d.log
     end
 
     def test_httpfs
-      d = create_driver %[
-namenode server.local:14000
-path /hdfs/path/file.%Y%m%d.%H%M.log
-httpfs yes
-username hdfs_user
-]
+      conf = config_element(
+        "ROOT", "", {
+          "namenode" => "server.local:14000",
+          "path" => "/hdfs/path/file.%Y%m%d.%H%M.log",
+          "httpfs" => "yes",
+          "username" => "hdfs_user"
+        })
+      d = create_driver(conf)
+
       assert_equal 'server.local', d.instance.instance_eval{ @namenode_host }
       assert_equal 14000, d.instance.instance_eval{ @namenode_port }
       assert_equal '/hdfs/path/file.%Y%m%d.%H%M.log', d.instance.path
@@ -47,14 +52,17 @@ username hdfs_user
     end
 
     def test_ssl
-      d = create_driver %[
-namenode server.local:14000
-path /hdfs/path/file.%Y%m%d.%H%M.log
-ssl true
-ssl_ca_file /path/to/ca_file.pem
-ssl_verify_mode peer
-kerberos true
-]
+      conf = config_element(
+        "ROOT", "", {
+          "namenode" => "server.local:14000",
+          "path" => "/hdfs/path/file.%Y%m%d.%H%M.log",
+          "ssl" => true,
+          "ssl_ca_file" => "/path/to/ca_file.pem",
+          "ssl_verify_mode" => "peer",
+          "kerberos" => true
+        })
+      d = create_driver(conf)
+
       assert_equal 'server.local', d.instance.instance_eval{ @namenode_host }
       assert_equal 14000, d.instance.instance_eval{ @namenode_port }
       assert_equal '/hdfs/path/file.%Y%m%d.%H%M.log', d.instance.path
@@ -71,11 +79,13 @@ kerberos true
     def test_compress(data)
       compress_type, compressor_class = data
       begin
-        d = create_driver %[
-namenode server.local:14000
-path /hdfs/path/file.%Y%m%d.%H%M.log
-compress #{compress_type}
-        ]
+        conf = config_element(
+          "ROOT", "", {
+            "namenode" => "server.local:14000",
+            "path" => "/hdfs/path/file.%Y%m%d.%H%M.log",
+            "compress" => compress_type
+          })
+        d = create_driver(conf)
       rescue Fluent::ConfigError => ex
         omit ex.message
       end
@@ -87,11 +97,13 @@ compress #{compress_type}
     end
 
     def test_placeholders
-      d = create_driver %[
-hostname testing.node.local
-namenode server.local:50070
-path /hdfs/${hostname}/file.%Y%m%d%H.log
-]
+      conf = config_element(
+        "ROOT", "", {
+          "hostname" => "testing.node.local",
+          "namenode" => "server.local:50070",
+          "path" => "/hdfs/${hostname}/file.%Y%m%d%H.log"
+        })
+      d = create_driver(conf)
       assert_equal '/hdfs/testing.node.local/file.%Y%m%d%H.log', d.instance.path
     end
 
@@ -105,10 +117,13 @@ path /hdfs/${hostname}/file.%Y%m%d%H.log
       end
 
       def test_time_slice_format
-        d = create_driver %[
-namenode server.local:14000
-path /hdfs/path/file.%Y%m%d.%H%M.log
-]
+        conf = config_element(
+          "ROOT", "", {
+            "namenode" => "server.local:14000",
+            "path" => "/hdfs/path/file.%Y%m%d.%H%M.log"
+          })
+        d = create_driver(conf)
+
         time = event_time("2012-07-18 15:03:00 +0900")
         metadata = d.instance.metadata("test", time, {})
         assert_equal '/hdfs/path/file.%Y%m%d.%H%M.log', d.instance.path
@@ -119,32 +134,38 @@ path /hdfs/path/file.%Y%m%d.%H%M.log
     class InvalidTest < self
       def test_path
         assert_raise Fluent::ConfigError do
-          d = create_driver %[
-            namenode server.local:14000
-            path /hdfs/path/file.%Y%m%d.%H%M.log
-            append false
-          ]
+          conf = config_element(
+            "ROOT", "", {
+              "namenode" => "server.local:14000",
+              "path" => "/hdfs/path/file.%Y%m%d.%H%M.log",
+              "append" => false
+            })
+          create_driver(conf)
         end
       end
 
       def test_ssl
         assert_raise Fluent::ConfigError do
-          create_driver %[
-            namenode server.local:14000
-            path /hdfs/path/file.%Y%m%d.%H%M.log
-            ssl true
-            ssl_verify_mode invalid
-          ]
+          conf = config_element(
+            "ROOT", "", {
+              "namenode" => "server.local:14000",
+              "path" => "/hdfs/path/file.%Y%m%d.%H%M.log",
+              "ssl" => true,
+              "ssl_verify_mode" => "invalid"
+            })
+          create_driver(conf)
         end
       end
 
       def test_invalid_compress
         assert_raise Fluent::ConfigError do
-          create_driver %[
-            namenode server.local:14000
-            path /hdfs/path/file.%Y%m%d.%H%M.log
-            compress invalid
-          ]
+          conf = config_element(
+            "ROOT", "", {
+              "namenode" => "server.local:14000",
+              "path" => "/hdfs/path/file.%Y%m%d.%H%M.log",
+              "compress" => "invalid"
+            })
+          create_driver(conf)
         end
       end
     end
