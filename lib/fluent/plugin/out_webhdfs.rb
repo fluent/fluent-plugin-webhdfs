@@ -219,10 +219,6 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
     end
   end
 
-  def shutdown
-    super
-  end
-
   def path_format(metadata)
     extract_placeholders(@path, metadata)
   end
