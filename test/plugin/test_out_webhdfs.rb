@@ -116,6 +116,8 @@ class WebHDFSOutputTest < Test::Unit::TestCase
           "path" => path
         })
       d = create_driver(conf)
+      formatter = Fluent::Timezone.formatter("+0900", path)
+      mock(Fluent::Timezone).formatter(Time.now.strftime("%z"), path) { formatter }
       time = event_time("2012-07-18 15:03:00 +0900")
       metadata = d.instance.metadata("test", time, {})
       chunk = d.instance.buffer.generate_chunk(metadata)
