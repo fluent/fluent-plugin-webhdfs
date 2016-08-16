@@ -107,30 +107,19 @@ class WebHDFSOutputTest < Test::Unit::TestCase
       assert_equal '/hdfs/testing.node.local/file.%Y%m%d%H.log', d.instance.path
     end
 
-    class PathFormatTest < self
-      def test_default
-        d = create_driver
-        time = event_time("2012-07-18 15:03:00 +0900")
-        metadata = d.instance.metadata("test", time, {})
-        chunk = d.instance.buffer.generate_chunk(metadata)
-        assert_equal '/hdfs/path/file.%Y%m%d.log', d.instance.path
-        assert_equal '/hdfs/path/file.20120718.log', d.instance.generate_path(chunk)
-      end
-
-      def test_time_slice_format
-        conf = config_element(
-          "ROOT", "", {
-            "namenode" => "server.local:14000",
-            "path" => "/hdfs/path/file.%Y%m%d.%H%M.log"
-          })
-        d = create_driver(conf)
-
-        time = event_time("2012-07-18 15:03:00 +0900")
-        metadata = d.instance.metadata("test", time, {})
-        chunk = d.instance.buffer.generate_chunk(metadata)
-        assert_equal '/hdfs/path/file.%Y%m%d.%H%M.log', d.instance.path
-        assert_equal '/hdfs/path/file.20120718.1503.log', d.instance.generate_path(chunk)
-      end
+    data("%Y%m%d" => ["/hdfs/path/file.%Y%m%d.log", "/hdfs/path/file.20120718.log"],
+         "%Y%m%d.%H%M" => ["/hdfs/path/file.%Y%m%d.%H%M.log", "/hdfs/path/file.20120718.1503.log"])
+    test "generate_path" do |(path, expected)|
+      conf = config_element(
+        "ROOT", "", {
+          "namenode" => "server.local:14000",
+          "path" => path
+        })
+      d = create_driver(conf)
+      time = event_time("2012-07-18 15:03:00 +0900")
+      metadata = d.instance.metadata("test", time, {})
+      chunk = d.instance.buffer.generate_chunk(metadata)
+      assert_equal expected, d.instance.generate_path(chunk)
     end
 
     data(path: { "append" => false },
