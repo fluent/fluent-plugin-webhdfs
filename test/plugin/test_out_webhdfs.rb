@@ -131,42 +131,18 @@ class WebHDFSOutputTest < Test::Unit::TestCase
       end
     end
 
-    class InvalidTest < self
-      def test_path
-        assert_raise Fluent::ConfigError do
-          conf = config_element(
-            "ROOT", "", {
-              "namenode" => "server.local:14000",
-              "path" => "/hdfs/path/file.%Y%m%d.%H%M.log",
-              "append" => false
-            })
-          create_driver(conf)
-        end
-      end
-
-      def test_ssl
-        assert_raise Fluent::ConfigError do
-          conf = config_element(
-            "ROOT", "", {
-              "namenode" => "server.local:14000",
-              "path" => "/hdfs/path/file.%Y%m%d.%H%M.log",
-              "ssl" => true,
-              "ssl_verify_mode" => "invalid"
-            })
-          create_driver(conf)
-        end
-      end
-
-      def test_invalid_compress
-        assert_raise Fluent::ConfigError do
-          conf = config_element(
-            "ROOT", "", {
-              "namenode" => "server.local:14000",
-              "path" => "/hdfs/path/file.%Y%m%d.%H%M.log",
-              "compress" => "invalid"
-            })
-          create_driver(conf)
-        end
+    data(path: { "append" => false },
+         ssl: { "ssl" => true, "ssl_verify_mode" => "invalid" },
+         compress: { "compress" => "invalid" })
+    test "invalid" do |attr|
+      conf = config_element(
+        "ROOT", "", {
+          "namenode" => "server.local:14000",
+          "path" => "/hdfs/path/file.%Y%m%d.%H%M.log"
+        })
+      conf += config_element("", "", attr)
+      assert_raise Fluent::ConfigError do
+        create_driver(conf)
       end
     end
   end
