@@ -14,10 +14,6 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
 
   helpers :compat_parameters
 
-  config_section :buffer do
-    config_set_default :@type, 'memory'
-  end
-
   desc 'WebHDFS/HttpFs host'
   config_param :host, :string, default: nil
   desc 'WebHDFS/HttpFs port'
