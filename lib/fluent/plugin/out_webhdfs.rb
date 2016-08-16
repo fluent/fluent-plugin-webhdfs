@@ -159,7 +159,7 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
       @client_standby = nil
     end
 
-    if not @append
+    unless @append
       if @path.index(CHUNK_ID_PLACE_HOLDER).nil?
         raise Fluent::ConfigError, "path must contain ${chunk_id}, which is the placeholder for chunk_id, when append is set to false."
       end
