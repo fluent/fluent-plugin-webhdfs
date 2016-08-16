@@ -15,7 +15,7 @@ class WebHDFSOutputTest < Test::Unit::TestCase
     Fluent::Test::Driver::Output.new(Fluent::Plugin::WebHDFSOutput).configure(conf)
   end
 
-  class ConfigureTest < self
+  sub_test_case "flat configuration" do
     def test_default
       d = create_driver
       assert_equal 'namenode.local', d.instance.instance_eval{ @namenode_host }
