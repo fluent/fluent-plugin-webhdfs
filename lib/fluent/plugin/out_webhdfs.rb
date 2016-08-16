@@ -122,7 +122,7 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
     rescue Fluent::ConfigError
       raise
     rescue
-      $log.warn "#{@comress} not found. Use 'text' instead"
+      log.warn "#{@comress} not found. Use 'text' instead"
       @compressor = COMPRESSOR_REGISTRY.lookup('text').new
     end
 
