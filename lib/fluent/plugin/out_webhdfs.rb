@@ -237,10 +237,6 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
     end
   end
 
-  def chunk_unique_id_to_str(unique_id)
-    unique_id.unpack('C*').map{|x| x.to_s(16).rjust(2,'0')}.join('')
-  end
-
   # TODO check conflictions
 
   def send_data(path, data)
@@ -259,7 +255,7 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
     hdfs_path = if @append
                   path_format(chunk.metadata)
                 else
-                  path_format(chunk.metadata).gsub(CHUNK_ID_PLACE_HOLDER, chunk_unique_id_to_str(chunk.unique_id))
+                  path_format(chunk.metadata).gsub(CHUNK_ID_PLACE_HOLDER, dump_unique_id(chunk.unique_id))
                 end
     hdfs_path = "#{hdfs_path}#{@compressor.ext}"
     hdfs_path
