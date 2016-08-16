@@ -113,7 +113,7 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
       conf.elements << e
     end
     buffer_config = conf.elements(name: "buffer", arg: "time").first
-    buffer_config["timekey"] = timekey
+    buffer_config["timekey"] = timekey unless buffer_config["timekey"]
 
     super
 

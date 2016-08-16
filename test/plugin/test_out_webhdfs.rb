@@ -137,4 +137,26 @@ class WebHDFSOutputTest < Test::Unit::TestCase
       end
     end
   end
+
+  sub_test_case "sub section configuration" do
+    def test_time_key
+      conf = config_element(
+        "ROOT", "", {
+          "host" => "namenode.local",
+          "path" => "/hdfs/path/file.%Y%m%d.log"
+        }, [
+          config_element(
+            "buffer", "time", {
+              "timekey" => 1
+            })
+        ]
+      )
+      d = create_driver(conf)
+      time = event_time("2012-07-18 15:03:00 +0900")
+      metadata = d.instance.metadata("test", time, {})
+      chunk = d.instance.buffer.generate_chunk(metadata)
+      assert_equal 1, d.instance.buffer_config.timekey
+      assert_equal "/hdfs/path/file.20120718.log", d.instance.generate_path(chunk)
+    end
+  end
 end
