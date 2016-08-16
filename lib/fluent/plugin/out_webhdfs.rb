@@ -4,6 +4,7 @@ require 'net/http'
 require 'time'
 require 'webhdfs'
 require 'tempfile'
+require 'fluent/config/element'
 require 'fluent/plugin/output'
 
 require 'fluent/mixin/config_placeholders'
@@ -99,14 +100,20 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
   end
 
   def configure(conf)
-    conf["time_slice_format"] = case conf["path"]
-                                when /%S/ then "%Y%m%d%H%M%S"
-                                when /%M/ then "%Y%m%d%H%M"
-                                when /%H/ then "%Y%m%d%H"
-                                else "%Y%m%d"
-                                end
+    compat_parameters_convert(conf, :buffer, default_chunk_key: "time")
 
-    compat_parameters_convert(conf, :buffer)
+    timekey = case conf["path"]
+              when /%S/ then 1
+              when /%M/ then 60
+              when /%H/ then 3600
+              else 86400
+              end
+    if conf.elements(name: "buffer", arg: "time").empty?
+      e = Fluent::Config::Element.new("buffer", "time", {}, [])
+      conf.elements << e
+    end
+    buffer_config = conf.elements(name: "buffer", arg: "time").first
+    buffer_config["timekey"] = timekey
 
     super
 
