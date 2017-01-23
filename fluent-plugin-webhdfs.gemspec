@@ -2,7 +2,7 @@
 
 Gem::Specification.new do |gem|
   gem.name          = "fluent-plugin-webhdfs"
-  gem.version       = "0.5.2"
+  gem.version       = "0.5.3"
   gem.authors       = ["TAGOMORI Satoshi"]
   gem.email         = ["tagomoris@gmail.com"]
   gem.summary       = %q{Fluentd plugin to write data on HDFS over WebHDFS, with flexible formatting}
@@ -19,7 +19,7 @@ Gem::Specification.new do |gem|
   gem.add_development_dependency "test-unit"
   gem.add_development_dependency "appraisal"
   gem.add_development_dependency "snappy", '>= 0.0.13'
-  gem.add_runtime_dependency "fluentd", '>= 0.10.59'
+  gem.add_runtime_dependency "fluentd", ['>= 0.10.59', "< 0.14.0"]
   gem.add_runtime_dependency "fluent-mixin-plaintextformatter", '>= 0.2.1'
   gem.add_runtime_dependency "fluent-mixin-config-placeholders", ">= 0.3.0"
   gem.add_runtime_dependency "webhdfs", '>= 0.6.0'
