@@ -1,77 +1,73 @@
 # -*- coding: utf-8 -*-
 
+require 'net/http'
+require 'time'
+require 'webhdfs'
 require 'tempfile'
+require 'fluent/config/element'
+require 'fluent/plugin/output'
 
 require 'fluent/mixin/config_placeholders'
 require 'fluent/mixin/plaintextformatter'
 
-class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
+class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
   Fluent::Plugin.register_output('webhdfs', self)
 
-  config_set_default :buffer_type, 'memory'
-  config_set_default :time_slice_format, '%Y%m%d'
-
-  # For fluentd v0.12.16 or earlier
-  class << self
-    unless method_defined?(:desc)
-      def desc(description)
-      end
-    end
-  end
+  helpers :compat_parameters
 
   desc 'WebHDFS/HttpFs host'
-  config_param :host, :string, :default => nil
+  config_param :host, :string, default: nil
   desc 'WebHDFS/HttpFs port'
-  config_param :port, :integer, :default => 50070
+  config_param :port, :integer, default: 50070
   desc 'Namenode (host:port)'
-  config_param :namenode, :string, :default => nil # host:port
+  config_param :namenode, :string, default: nil # host:port
   desc 'Standby namenode for Namenode HA (host:port)'
-  config_param :standby_namenode, :string, :default => nil # host:port
+  config_param :standby_namenode, :string, default: nil # host:port
 
   desc 'Ignore errors on start up'
-  config_param :ignore_start_check_error, :bool, :default => false
+  config_param :ignore_start_check_error, :bool, default: false
 
   include Fluent::Mixin::ConfigPlaceholders
 
   desc 'Output file path on HDFS'
   config_param :path, :string
   desc 'User name for pseudo authentication'
-  config_param :username, :string, :default => nil
+  config_param :username, :string, default: nil
 
   desc 'Store data over HttpFs instead of WebHDFS'
-  config_param :httpfs, :bool, :default => false
+  config_param :httpfs, :bool, default: false
 
   desc 'Number of seconds to wait for the connection to open'
-  config_param :open_timeout, :integer, :default => 30 # from ruby net/http default
+  config_param :open_timeout, :integer, default: 30 # from ruby net/http default
   desc 'Number of seconds to wait for one block to be read'
-  config_param :read_timeout, :integer, :default => 60 # from ruby net/http default
+  config_param :read_timeout, :integer, default: 60 # from ruby net/http default
 
   desc 'Retry automatically when known errors of HDFS are occurred'
-  config_param :retry_known_errors, :bool, :default => false
+  config_param :retry_known_errors, :bool, default: false
   desc 'Retry interval'
-  config_param :retry_interval, :integer, :default => nil
+  config_param :retry_interval, :integer, default: nil
   desc 'The number of retries'
-  config_param :retry_times, :integer, :default => nil
+  config_param :retry_times, :integer, default: nil
 
   # how many times of write failure before switch to standby namenode
   # by default it's 11 times that costs 1023 seconds inside fluentd,
   # which is considered enough to exclude the scenes that caused by temporary network fail or single datanode fail
   desc 'How many times of write failure before switch to standby namenode'
-  config_param :failures_before_use_standby, :integer, :default => 11
+  config_param :failures_before_use_standby, :integer, default: 11
 
   include Fluent::Mixin::PlainTextFormatter
 
-  config_param :default_tag, :string, :default => 'tag_missing'
+  config_param :default_tag, :string, default: 'tag_missing'
 
   desc 'Append data or not'
-  config_param :append, :bool, :default => true
+  config_param :append, :bool, default: true
 
   desc 'Use SSL or not'
-  config_param :ssl, :bool, :default => false
+  config_param :ssl, :bool, default: false
   desc 'OpenSSL certificate authority file'
-  config_param :ssl_ca_file, :string, :default => nil
+  config_param :ssl_ca_file, :string, default: nil
   desc 'OpenSSL verify mode (none,peer)'
-  config_param :ssl_verify_mode, :default => nil do |val|
+  config_param :ssl_verify_mode, default: nil do |val|
     case val
     when 'none'
       :none
@@ -83,11 +79,11 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
   end
 
   desc 'Use kerberos authentication or not'
-  config_param :kerberos, :bool, :default => false
+  config_param :kerberos, :bool, default: false
 
   SUPPORTED_COMPRESS = ['gzip', 'bzip2', 'snappy', 'lzo_command', 'text']
   desc "Compress method (#{SUPPORTED_COMPRESS.join(',')})"
-  config_param :compress, :default => nil do |val|
+  config_param :compress, default: nil do |val|
     unless SUPPORTED_COMPRESS.include? val
       raise Fluent::ConfigError, "unsupported compress: #{val}"
     end
@@ -100,28 +96,24 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
 
   def initialize
     super
-    require 'net/http'
-    require 'time'
-    require 'webhdfs'
-
     @compressor = nil
   end
 
-  # Define `log` method for v0.10.42 or earlier
-  unless method_defined?(:log)
-    define_method("log") { $log }
-  end
-
   def configure(conf)
-    if conf['path']
-      if conf['path'].index('%S')
-        conf['time_slice_format'] = '%Y%m%d%H%M%S'
-      elsif conf['path'].index('%M')
-        conf['time_slice_format'] = '%Y%m%d%H%M'
-      elsif conf['path'].index('%H')
-        conf['time_slice_format'] = '%Y%m%d%H'
-      end
+    compat_parameters_convert(conf, :buffer, default_chunk_key: "time")
+
+    timekey = case conf["path"]
+              when /%S/ then 1
+              when /%M/ then 60
+              when /%H/ then 3600
+              else 86400
+              end
+    if conf.elements(name: "buffer", arg: "time").empty?
+      e = Fluent::Config::Element.new("buffer", "time", {}, [])
+      conf.elements << e
     end
+    buffer_config = conf.elements(name: "buffer", arg: "time").first
+    buffer_config["timekey"] = timekey unless buffer_config["timekey"]
 
     super
 
@@ -130,7 +122,7 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
     rescue Fluent::ConfigError
       raise
     rescue
-      $log.warn "#{@comress} not found. Use 'text' instead"
+      log.warn "#{@comress} not found. Use 'text' instead"
       @compressor = COMPRESSOR_REGISTRY.lookup('text').new
     end
 
@@ -167,7 +159,7 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
       @client_standby = nil
     end
 
-    if not @append
+    unless @append
       if @path.index(CHUNK_ID_PLACE_HOLDER).nil?
         raise Fluent::ConfigError, "path must contain ${chunk_id}, which is the placeholder for chunk_id, when append is set to false."
       end
@@ -230,14 +222,6 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
     end
   end
 
-  def shutdown
-    super
-  end
-
-  def path_format(chunk_key)
-    Time.strptime(chunk_key, @time_slice_format).strftime(@path)
-  end
-
   def is_standby_exception(e)
     e.is_a?(WebHDFS::IOError) && e.message.match(/org\.apache\.hadoop\.ipc\.StandbyException/)
   end
@@ -247,10 +231,6 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
       @client, @client_standby = @client_standby, @client
       log.warn "Namenode failovered, now using #{@client.host}:#{@client.port}."
     end
-  end
-
-  def chunk_unique_id_to_str(unique_id)
-    unique_id.unpack('C*').map{|x| x.to_s(16).rjust(2,'0')}.join('')
   end
 
   # TODO check conflictions
@@ -269,9 +249,9 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
 
   def generate_path(chunk)
     hdfs_path = if @append
-                  path_format(chunk.key)
+                  extract_placeholders(@path, chunk.metadata)
                 else
-                  path_format(chunk.key).gsub(CHUNK_ID_PLACE_HOLDER, chunk_unique_id_to_str(chunk.unique_id))
+                  extract_placeholders(@path, chunk.metadata).gsub(CHUNK_ID_PLACE_HOLDER, dump_unique_id(chunk.unique_id))
                 end
     hdfs_path = "#{hdfs_path}#{@compressor.ext}"
     hdfs_path

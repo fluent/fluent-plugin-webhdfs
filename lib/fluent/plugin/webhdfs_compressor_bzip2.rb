@@ -1,5 +1,5 @@
-module Fluent
-  class WebHDFSOutput < Fluent::TimeSlicedOutput
+module Fluent::Plugin
+  class WebHDFSOutput < Output
     class Bzip2Compressor < Compressor
       WebHDFSOutput.register_compressor('bzip2', self)
 

@@ -1,9 +1,9 @@
-module Fluent
-  class WebHDFSOutput
+module Fluent::Plugin
+  class WebHDFSOutput < Output
     class LZOCommandCompressor < Compressor
       WebHDFSOutput.register_compressor('lzo_command', self)
 
-      config_param :command_parameter, :string, :default => '-qf1'
+      config_param :command_parameter, :string, default: '-qf1'
 
       def configure(conf)
         super
