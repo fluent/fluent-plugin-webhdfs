@@ -2,16 +2,18 @@
 
 [Fluentd](http://fluentd.org/) output plugin to write data into Hadoop HDFS over WebHDFS/HttpFs.
 
-WebHDFSOutput slices data by time (specified unit), and store these data as hdfs file of plain text. You can specify to:
+"webhdfs" output plugin formats data into plain text, and store it as files on HDFS. This plugin supports:
 
-* format whole data as serialized JSON, single attribute or separated multi attributes
-  * or LTSV, labeled-TSV (see http://ltsv.org/ )
-* include time as line header, or not
-* include tag as line header, or not
-* change field separator (default: TAB)
-* add new line as termination, or not
+* inject tag and time into record (and output plain text data) using `<inject>` section
+* format events into plain text by format plugins using `<format>` section
+* control flushing using `<buffer>` section
 
-And you can specify output file path as 'path /path/to/dir/access.%Y%m%d.log', then got '/path/to/dir/access.20120316.log' on HDFS.
+Paths on HDFS can be generated from event timestamp, tag or any other fields in records.
+
+### Older versions
+
+The versions of `0.x.x` of this plugin are for older version of Fluentd (v0.12.x). Old style configuration parameters (using `output_data_type`, `output_include_*` or others) are still supported, but are deprecated.
+Users should use `<format>` section to control how to format events into plain text.
 
 ## Configuration
 
@@ -26,15 +28,16 @@ To store data by time,tag,json (same with '@type file') over WebHDFS:
       path /path/on/hdfs/access.log.%Y%m%d_%H.log
     </match>
 
-If you want JSON object only (without time or tag or both on header of lines), specify it by `output_include_time` or `output_include_tag` (default true):
+If you want JSON object only (without time or tag or both on header of lines), use `<format>` section to specify `json` formatter:
 
     <match access.**>
       @type webhdfs
       host namenode.your.cluster.local
       port 50070
       path /path/on/hdfs/access.log.%Y%m%d_%H.log
-      output_include_time false
-      output_include_tag  false
+      <format>
+        @type json
+      </format>
     </match>
 
 To specify namenode, `namenode` is also available:
@@ -45,14 +48,47 @@ To specify namenode, `namenode` is also available:
       path     /path/on/hdfs/access.log.%Y%m%d_%H.log
     </match>
 
-To store data as LTSV without time and tag over WebHDFS:
+To store data as JSON, including time and tag (using `<inject>`), over WebHDFS:
 
     <match access.**>
       @type webhdfs
       host namenode.your.cluster.local
       port 50070
       path /path/on/hdfs/access.log.%Y%m%d_%H.log
-      output_data_type ltsv
+      <buffer>
+        timekey_zone -0700 # to specify timezone used for "path" time placeholder formatting
+      </buffer>
+      <inject>
+        tag_key   tag
+        time_key  time
+        time_type string
+        timezone  -0700
+      </inject>
+      <format>
+        @type json
+      </format>
+    </match>
+
+To store data as JSON, including time as unix time, using path including tag as directory:
+
+    <match access.**>
+      @type webhdfs
+      host namenode.your.cluster.local
+      port 50070
+      path /path/on/hdfs/${tag}/access.log.%Y%m%d_%H.log
+      <buffer time,tag>
+        @type   file                    # using file buffer
+        path    /var/log/fluentd/buffer # buffer directory path
+        timekey 3h           # create a file per 3h
+        timekey_use_utc true # time in path are formatted in UTC (default false means localtime)
+      </buffer>
+      <inject>
+        time_key  time
+        time_type unixtime
+      </inject>
+      <format>
+        @type json
+      </format>
     </match>
 
 With username of pseudo authentication:
@@ -74,24 +110,6 @@ Store data over HttpFs (instead of WebHDFS):
       path /path/on/hdfs/access.log.%Y%m%d_%H.log
       httpfs true
     </match>
-
-Store data as TSV (TAB separated values) of specified keys, without time, with tag (removed prefix 'access'):
-
-    <match access.**>
-      @type webhdfs
-      host namenode.your.cluster.local
-      port 50070
-      path /path/on/hdfs/access.log.%Y%m%d_%H.log
-
-      field_separator TAB        # or 'SPACE', 'COMMA' or 'SOH'(Start Of Heading: \001)
-      output_include_time false
-      output_include_tag true
-      remove_prefix access
-
-      output_data_type attr:path,status,referer,agent,bytes
-    </match>
-
-If message doesn't have specified attribute, fluent-plugin-webhdfs outputs 'NULL' instead of values.
 
 With ssl:
 
@@ -158,7 +176,7 @@ And you can also specify to retry known hdfs errors (such like `LeaseExpiredExce
 ### Performance notifications
 
 Writing data on HDFS single file from 2 or more fluentd nodes, makes many bad blocks of HDFS. If you want to run 2 or more fluentd nodes with fluent-plugin-webhdfs, you should configure 'path' for each node.
-You can use '${hostname}' or '${uuid:random}' placeholders in configuration for this purpose.
+To include hostname, `#{Socket.gethostname}` is available in Fluentd configuration string literals by ruby expression (in `"..."` strings). This plugin also supports `${uuid}` placeholder to include random uuid in paths.
 
 For hostname:
 
@@ -166,7 +184,7 @@ For hostname:
       @type webhdfs
       host namenode.your.cluster.local
       port 50070
-      path /log/access/%Y%m%d/${hostname}.log
+      path "/log/access/%Y%m%d/#{Socket.gethostname}.log" # double quotes needed to expand ruby expression in string
     </match>
 
 Or with random filename (to avoid duplicated file name only):
@@ -175,10 +193,10 @@ Or with random filename (to avoid duplicated file name only):
       @type webhdfs
       host namenode.your.cluster.local
       port 50070
-      path /log/access/%Y%m%d/${uuid:random}.log
+      path /log/access/%Y%m%d/${uuid}.log
     </match>
 
-With configurations above, you can handle all of files of '/log/access/20120820/*' as specified timeslice access logs.
+With configurations above, you can handle all of files of `/log/access/20120820/*` as specified timeslice access logs.
 
 For high load cluster nodes, you can specify timeouts for HTTP requests.
 
@@ -214,15 +232,13 @@ With unstable datanodes that frequently downs, appending over WebHDFS may produc
       port 50070
       
       append no
-      path   /log/access/%Y%m%d/${hostname}.${chunk_id}.log
+      path   "/log/access/%Y%m%d/#{Socket.gethostname}.${chunk_id}.log"
     </match>
 
 `out_webhdfs` creates new files on hdfs per flush of fluentd, with chunk id. You shouldn't care broken files from append operations.
 
 ## TODO
 
-* configuration example for Hadoop Namenode HA
-  * here, or docs.fluentd.org ?
 * patches welcome!
 
 ## Copyright
