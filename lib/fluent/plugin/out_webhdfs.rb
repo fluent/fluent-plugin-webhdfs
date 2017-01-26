@@ -1,19 +1,16 @@
 # -*- coding: utf-8 -*-
 
-require 'net/http'
-require 'time'
+require 'fluent/plugin/output'
+require 'fluent/config/element'
+
 require 'webhdfs'
 require 'tempfile'
-require 'fluent/config/element'
-require 'fluent/plugin/output'
-
-require 'fluent/mixin/config_placeholders'
-require 'fluent/mixin/plaintextformatter'
+require 'securerandom'
 
 class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
   Fluent::Plugin.register_output('webhdfs', self)
 
-  helpers :compat_parameters
+  helpers :inject, :formatter, :compat_parameters
 
   desc 'WebHDFS/HttpFs host'
   config_param :host, :string, default: nil
@@ -26,8 +23,6 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
 
   desc 'Ignore errors on start up'
   config_param :ignore_start_check_error, :bool, default: false
-
-  include Fluent::Mixin::ConfigPlaceholders
 
   desc 'Output file path on HDFS'
   config_param :path, :string
@@ -55,9 +50,7 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
   desc 'How many times of write failure before switch to standby namenode'
   config_param :failures_before_use_standby, :integer, default: 11
 
-  include Fluent::Mixin::PlainTextFormatter
-
-  config_param :default_tag, :string, default: 'tag_missing'
+  config_param :end_with_newline, :bool, default: true
 
   desc 'Append data or not'
   config_param :append, :bool, default: true
@@ -67,36 +60,39 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
   desc 'OpenSSL certificate authority file'
   config_param :ssl_ca_file, :string, default: nil
   desc 'OpenSSL verify mode (none,peer)'
-  config_param :ssl_verify_mode, default: nil do |val|
-    case val
-    when 'none'
-      :none
-    when 'peer'
-      :peer
-    else
-      raise Fluent::ConfigError, "unexpected parameter on ssl_verify_mode: #{val}"
-    end
-  end
+  config_param :ssl_verify_mode, :enum, list: [:none, :peer], default: :none
 
   desc 'Use kerberos authentication or not'
   config_param :kerberos, :bool, default: false
 
-  SUPPORTED_COMPRESS = ['gzip', 'bzip2', 'snappy', 'lzo_command', 'text']
+  SUPPORTED_COMPRESS = [:gzip, :bzip2, :snappy, :lzo_command, :text]
   desc "Compress method (#{SUPPORTED_COMPRESS.join(',')})"
-  config_param :compress, default: nil do |val|
-    unless SUPPORTED_COMPRESS.include? val
-      raise Fluent::ConfigError, "unsupported compress: #{val}"
-    end
-    val
-  end
+  config_param :compress, :enum, list: SUPPORTED_COMPRESS, default: :text
+
+  config_param :remove_prefix, :string, default: nil, deprecated: "use @label for routing"
+  config_param :default_tag, :string, default: nil, deprecated: "use @label for routing"
+  config_param :null_value, :string, default: nil, deprecated: "use filter plugins to convert null values into any specified string"
+  config_param :suppress_log_broken_string, :bool, default: false, deprecated: "use @log_level for plugin to suppress such info logs"
 
   CHUNK_ID_PLACE_HOLDER = '${chunk_id}'
 
-  attr_reader :compressor
+  config_section :buffer do
+    config_set_default :chunk_keys, ["time"]
+  end
+
+  config_section :format do
+    config_set_default :@type, 'out_file'
+    config_set_default :localtime, false # default timezone is UTC
+  end
+
+  attr_reader :formatter, :compressor
 
   def initialize
     super
     @compressor = nil
+    @standby_namenode_host = nil
+    @output_include_tag = @output_include_time = nil # TODO: deprecated
+    @header_separator = @field_separator = nil # TODO: deprecated
   end
 
   def configure(conf)
@@ -108,23 +104,46 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
               when /%H/ then 3600
               else 86400
               end
-    if conf.elements(name: "buffer", arg: "time").empty?
+    if conf.elements(name: "buffer").empty?
       e = Fluent::Config::Element.new("buffer", "time", {}, [])
       conf.elements << e
     end
-    buffer_config = conf.elements(name: "buffer", arg: "time").first
+    buffer_config = conf.elements(name: "buffer").first
     buffer_config["timekey"] = timekey unless buffer_config["timekey"]
+
+    compat_parameters_convert_plaintextformatter(conf)
 
     super
 
-    begin
-      @compressor = COMPRESSOR_REGISTRY.lookup(@compress || 'text').new
-    rescue Fluent::ConfigError
-      raise
-    rescue
-      log.warn "#{@comress} not found. Use 'text' instead"
-      @compressor = COMPRESSOR_REGISTRY.lookup('text').new
+    @formatter = formatter_create
+
+    if @using_formatter_config
+      @null_value = nil
+    else
+      @formatter.delimiter = "\x01" if @formatter.respond_to?(:delimiter) && @formatter.delimiter == 'SOH'
+      @null_value ||= 'NULL'
     end
+
+    if @default_tag.nil? && !@using_formatter_config && @output_include_tag
+      @default_tag = "tag_missing"
+    end
+    if @remove_prefix
+      @remove_prefix_actual = @remove_prefix + "."
+      @remove_prefix_actual_length = @remove_prefix_actual.length
+    end
+
+    verify_config_placeholders_in_path!(conf)
+    @replace_random_uuid = @path.include?('%{uuid}') || @path.include?('%{uuid_flush}')
+    if @replace_random_uuid
+      # to check SecureRandom.uuid is available or not (NotImplementedError raised in such environment)
+      begin
+        SecureRandom.uuid
+      rescue
+        raise Fluent::ConfigError, "uuid feature (SecureRandom) is unavailable in this environment"
+      end
+    end
+
+    @compressor = COMPRESSOR_REGISTRY.lookup(@compress.to_s).new
 
     if @host
       @namenode_host = @host
@@ -233,8 +252,6 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
     end
   end
 
-  # TODO check conflictions
-
   def send_data(path, data)
     if @append
       begin
@@ -247,6 +264,41 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
     end
   end
 
+  HOSTNAME_PLACEHOLDERS_DEPRECATED = ['${hostname}', '%{hostname}', '__HOSTNAME__']
+  UUID_RANDOM_PLACEHOLDERS_DEPRECATED = ['${uuid}', '${uuid:random}', '__UUID__', '__UUID_RANDOM__']
+  UUID_OTHER_PLACEHOLDERS_OBSOLETED = ['${uuid:hostname}', '%{uuid:hostname}', '__UUID_HOSTNAME__', '${uuid:timestamp}', '%{uuid:timestamp}', '__UUID_TIMESTAMP__']
+
+  def verify_config_placeholders_in_path!(conf)
+    return unless conf.has_key?('path')
+
+    path = conf['path']
+
+    # check @path for ${hostname}, %{hostname} and __HOSTNAME__ to warn to use #{Socket.gethostbyname}
+    if HOSTNAME_PLACEHOLDERS_DEPRECATED.any?{|ph| path.include?(ph) }
+      log.warn "hostname placeholder is now deprecated. use '\#\{Socket.gethostname\}' instead."
+      hostname = conf['hostname'] || Socket.gethostname
+      HOSTNAME_PLACEHOLDERS_DEPRECATED.each do |ph|
+        path.gsub!(ph, hostname)
+      end
+    end
+
+    if UUID_RANDOM_PLACEHOLDERS_DEPRECATED.any?{|ph| path.include?(ph) }
+      log.warn "random uuid placeholders are now deprecated. use %{uuid} (or %{uuid_flush}) instead."
+      UUID_RANDOM_PLACEHOLDERS_DEPRECATED.each do |ph|
+        path.gsub!(ph, '%{uuid}')
+      end
+    end
+
+    if UUID_OTHER_PLACEHOLDERS_OBSOLETED.any?{|ph| path.include?(ph) }
+      UUID_OTHER_PLACEHOLDERS_OBSOLETED.each do |ph|
+        if path.include?(ph)
+          log.error "configuration placeholder #{ph} is now unsupported by webhdfs output plugin."
+        end
+      end
+      raise ConfigError, "there are unsupported placeholders in path."
+    end
+  end
+
   def generate_path(chunk)
     hdfs_path = if @append
                   extract_placeholders(@path, chunk.metadata)
@@ -254,6 +306,10 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
                   extract_placeholders(@path, chunk.metadata).gsub(CHUNK_ID_PLACE_HOLDER, dump_unique_id(chunk.unique_id))
                 end
     hdfs_path = "#{hdfs_path}#{@compressor.ext}"
+    if @replace_random_uuid
+      uuid_random = SecureRandom.uuid
+      hdfs_path.gsub!('%{uuid}', uuid_random).gsub!('%{uuid_flush}', uuid_random)
+    end
     hdfs_path
   end
 
@@ -266,6 +322,48 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
     ensure
       tmp.close(true) rescue nil
     end
+  end
+
+  def format(tag, time, record)
+    if @remove_prefix # TODO: remove when it's obsoleted
+      if tag.start_with?(@remove_prefix_actual)
+        if tag.length > @remove_prefix_actual_length
+          tag = tag[@remove_prefix_actual_length..-1]
+        else
+          tag = @default_tag
+        end
+      elsif tag.start_with?(@remove_prefix)
+        if tag == @remove_prefix
+          tag = @default_tag
+        else
+          tag = tag.sub(@remove_prefix, '')
+        end
+      end
+    end
+
+    if @null_value # TODO: remove when it's obsoleted
+      check_keys = (record.keys + @null_convert_keys).uniq
+      check_keys.each do |key|
+        record[key] = @null_value if record[key].nil?
+      end
+    end
+
+    if @using_formatter_config
+      record = inject_values_to_record(tag, time, record)
+      line = @formatter.format(tag, time, record)
+    else # TODO: remove when it's obsoleted
+      time_str = @output_include_time ? @time_formatter.call(time) + @header_separator : ''
+      tag_str = @output_include_tag ? tag + @header_separator : ''
+      record_str = @formatter.format(tag, time, record)
+      line = time_str + tag_str + record_str
+    end
+    line << "\n" if @end_with_newline && !line.end_with?("\n")
+    line
+  rescue => e # remove this clause when @suppress_log_broken_string is obsoleted
+    unless @suppress_log_broken_string
+      log.info "unexpected error while formatting events, ignored", tag: tag, record: record, error: e
+    end
+    ''
   end
 
   def write(chunk)
@@ -296,6 +394,72 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
       raise e
     end
     hdfs_path
+  end
+
+  def compat_parameters_convert_plaintextformatter(conf)
+    if !conf.elements('format').empty? || !conf['output_data_type']
+      @using_formatter_config = true
+      @null_convert_keys = []
+      return
+    end
+
+    log.warn "webhdfs output plugin is working with old configuration parameters. use <inject>/<format> sections instead for further releases."
+    @using_formatter_config = false
+    @null_convert_keys = []
+
+    @header_separator = case conf['field_separator']
+                        when nil     then "\t"
+                        when 'SPACE' then ' '
+                        when 'TAB'   then "\t"
+                        when 'COMMA' then ','
+                        when 'SOH'   then "\x01"
+                        else conf['field_separator']
+                        end
+
+    format_section = Fluent::Config::Element.new('format', '', {}, [])
+    case conf['output_data_type']
+    when '', 'json' # blank value is for compatibility reason (especially in testing)
+      format_section['@type'] = 'json'
+    when 'ltsv'
+      format_section['@type'] = 'ltsv'
+    else
+      unless conf['output_data_type'].start_with?('attr:')
+        raise Fluent::ConfigError, "output_data_type is invalid: #{conf['output_data_type']}"
+      end
+      format_section['@format'] = 'tsv'
+      keys_part = conf['output_data_type'].sub(/^attr:/, '')
+      @null_convert_keys = keys_part.split(',')
+      format_section['keys'] = keys_part
+      format_section['delimiter'] = case conf['field_separator']
+                                    when nil then '\t'
+                                    when 'SPACE' then ' '
+                                    when 'TAB'   then '\t'
+                                    when 'COMMA' then ','
+                                    when 'SOH'   then 'SOH' # fixed later
+                                    else conf['field_separator']
+                                    end
+    end
+
+    conf.elements << format_section
+
+    @output_include_time = conf.has_key?('output_include_time') ? Fluent::Config.bool_value(conf['output_include_time']) : true
+    @output_include_tag = conf.has_key?('output_include_tag') ? Fluent::Config.bool_value(conf['output_include_tag']) : true
+
+    if @output_include_time
+      # default timezone is UTC
+      using_localtime = if !conf.has_key?('utc') && !conf.has_key?('localtime')
+                          false
+                        elsif conf.has_key?('localtime') && conf.has_key?('utc')
+                          raise Fluent::ConfigError, "specify either 'localtime' or 'utc'"
+                        elsif conf.has_key?('localtime')
+                          Fluent::Config.bool_value('localtime')
+                        else
+                          Fluent::Config.bool_value('utc')
+                        end
+      @time_formatter = Fluent::TimeFormatter.new(conf['time_format'], using_localtime)
+    else
+      @time_formatter = nil
+    end
   end
 
   class Compressor
