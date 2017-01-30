@@ -154,6 +154,20 @@ class WebHDFSOutputTest < Test::Unit::TestCase
       assert_equal expected, d.instance.generate_path(chunk)
     end
 
+    data(path: "/hdfs/path/file.${chunk_id}.log")
+    test "generate_path without append" do |path|
+      conf = config_element(
+        "ROOT", "", {
+          "namenode" => "server.local:14000",
+          "path" => path,
+          "append" => false
+        })
+      d = create_driver(conf)
+      metadata = d.instance.metadata("test", nil, {})
+      chunk = d.instance.buffer.generate_chunk(metadata)
+      assert_equal "/hdfs/path/file.#{dump_unique_id_hex(chunk.unique_id)}.log", d.instance.generate_path(chunk)
+    end
+
     data(path: { "append" => false },
          ssl: { "ssl" => true, "ssl_verify_mode" => "invalid" },
          compress: { "compress" => "invalid" })

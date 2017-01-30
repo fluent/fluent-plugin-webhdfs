@@ -26,6 +26,7 @@ unless ENV.has_key?('VERBOSE')
 end
 
 include Fluent::Test::Helpers
+include Fluent::UniqueId::Mixin
 
 require 'fluent/plugin/out_webhdfs'
 
