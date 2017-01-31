@@ -185,6 +185,10 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
     end
   end
 
+  def multi_workers_ready?
+    true
+  end
+
   def prepare_client(host, port, username)
     client = WebHDFS::Client.new(host, port, username)
     if @httpfs
