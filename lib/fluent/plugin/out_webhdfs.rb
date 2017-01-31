@@ -112,6 +112,7 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
     buffer_config["timekey"] = timekey unless buffer_config["timekey"]
 
     compat_parameters_convert_plaintextformatter(conf)
+    verify_config_placeholders_in_path!(conf)
 
     super
 
@@ -132,7 +133,6 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
       @remove_prefix_actual_length = @remove_prefix_actual.length
     end
 
-    verify_config_placeholders_in_path!(conf)
     @replace_random_uuid = @path.include?('%{uuid}') || @path.include?('%{uuid_flush}')
     if @replace_random_uuid
       # to check SecureRandom.uuid is available or not (NotImplementedError raised in such environment)
@@ -183,6 +183,10 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
         raise Fluent::ConfigError, "path must contain ${chunk_id}, which is the placeholder for chunk_id, when append is set to false."
       end
     end
+  end
+
+  def multi_workers_ready?
+    true
   end
 
   def prepare_client(host, port, username)
