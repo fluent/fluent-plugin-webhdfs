@@ -10,6 +10,13 @@
 
 Paths on HDFS can be generated from event timestamp, tag or any other fields in records.
 
+## Requirements
+
+| fluent-plugin-webhdfs | fluentd    | ruby   |
+|-----------------------|------------|--------|
+| >= 1.0.0              | >= v0.14.4 | >= 2.1 |
+| <  1.0.0              | <  v0.14.0 | >= 1.9 |
+
 ### Older versions
 
 The versions of `0.x.x` of this plugin are for older version of Fluentd (v0.12.x). Old style configuration parameters (using `output_data_type`, `output_include_*` or others) are still supported, but are deprecated.
