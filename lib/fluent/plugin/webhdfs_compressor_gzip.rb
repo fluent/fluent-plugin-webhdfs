@@ -14,7 +14,7 @@ module Fluent
       def compress(chunk, tmp)
         w = Zlib::GzipWriter.new(tmp)
         chunk.write_to(w)
-        w.close
+        w.finish
       end
     end
   end
