@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 
 require 'tempfile'
-
-require 'fluent/mixin/config_placeholders'
+require 'securerandom'
 require 'fluent/mixin/plaintextformatter'
 
 class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
@@ -30,8 +29,6 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
 
   desc 'Ignore errors on start up'
   config_param :ignore_start_check_error, :bool, :default => false
-
-  include Fluent::Mixin::ConfigPlaceholders
 
   desc 'Output file path on HDFS'
   config_param :path, :string
@@ -123,7 +120,19 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
       end
     end
 
+    verify_config_placeholders_in_path!(conf)
+
     super
+
+    @replace_random_uuid = @path.include?('%{uuid}') || @path.include?('%{uuid_flush}')
+    if @replace_random_uuid
+      # to check SecureRandom.uuid is available or not (NotImplementedError raised in such environment)
+      begin
+        SecureRandom.uuid
+      rescue
+        raise Fluent::ConfigError, "uuid feature (SecureRandom) is unavailable in this environment"
+      end
+    end
 
     begin
       @compressor = COMPRESSOR_REGISTRY.lookup(@compress || 'text').new
@@ -267,6 +276,41 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
     end
   end
 
+  HOSTNAME_PLACEHOLDERS_DEPRECATED = ['${hostname}', '%{hostname}', '__HOSTNAME__']
+  UUID_RANDOM_PLACEHOLDERS_DEPRECATED = ['${uuid}', '${uuid:random}', '__UUID__', '__UUID_RANDOM__']
+  UUID_OTHER_PLACEHOLDERS_OBSOLETED = ['${uuid:hostname}', '%{uuid:hostname}', '__UUID_HOSTNAME__', '${uuid:timestamp}', '%{uuid:timestamp}', '__UUID_TIMESTAMP__']  
+
+  def verify_config_placeholders_in_path!(conf)
+    return unless conf.has_key?('path')
+
+    path = conf['path']
+
+    # check @path for ${hostname}, %{hostname} and __HOSTNAME__ to warn to use #{Socket.gethostbyname}
+    if HOSTNAME_PLACEHOLDERS_DEPRECATED.any?{|ph| path.include?(ph) }
+      log.warn "hostname placeholder is now deprecated. use '\#\{Socket.gethostname\}' instead."
+      hostname = conf['hostname'] || Socket.gethostname
+      HOSTNAME_PLACEHOLDERS_DEPRECATED.each do |ph|
+        path.gsub!(ph, hostname)
+      end
+    end
+
+    if UUID_RANDOM_PLACEHOLDERS_DEPRECATED.any?{|ph| path.include?(ph) }
+      log.warn "random uuid placeholders are now deprecated. use %{uuid} (or %{uuid_flush}) instead."
+      UUID_RANDOM_PLACEHOLDERS_DEPRECATED.each do |ph|
+        path.gsub!(ph, '%{uuid}')
+      end
+    end
+
+    if UUID_OTHER_PLACEHOLDERS_OBSOLETED.any?{|ph| path.include?(ph) }
+      UUID_OTHER_PLACEHOLDERS_OBSOLETED.each do |ph|
+        if path.include?(ph)
+          log.error "configuration placeholder #{ph} is now unsupported by webhdfs output plugin."
+        end
+      end
+      raise Fluent::ConfigError, "there are unsupported placeholders in path."
+    end
+  end
+
   def generate_path(chunk)
     hdfs_path = if @append
                   path_format(chunk.key)
@@ -274,6 +318,10 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
                   path_format(chunk.key).gsub(CHUNK_ID_PLACE_HOLDER, chunk_unique_id_to_str(chunk.unique_id))
                 end
     hdfs_path = "#{hdfs_path}#{@compressor.ext}"
+    if @replace_random_uuid
+      uuid_random = SecureRandom.uuid
+      hdfs_path = hdfs_path.gsub('%{uuid}', uuid_random).gsub('%{uuid_flush}', uuid_random)
+    end
     hdfs_path
   end
 
@@ -344,7 +392,7 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
       begin
         Open3.capture3("#{command} -V")
       rescue Errno::ENOENT
-        raise ConfigError, "'#{command}' utility must be in PATH for #{algo} compression"
+        raise Fluent::ConfigError, "'#{command}' utility must be in PATH for #{algo} compression"
       end
     end
   end
