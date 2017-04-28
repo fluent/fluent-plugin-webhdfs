@@ -307,7 +307,7 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
           log.error "configuration placeholder #{ph} is now unsupported by webhdfs output plugin."
         end
       end
-      raise ConfigError, "there are unsupported placeholders in path."
+      raise Fluent::ConfigError, "there are unsupported placeholders in path."
     end
   end
 
@@ -392,7 +392,7 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
       begin
         Open3.capture3("#{command} -V")
       rescue Errno::ENOENT
-        raise ConfigError, "'#{command}' utility must be in PATH for #{algo} compression"
+        raise Fluent::ConfigError, "'#{command}' utility must be in PATH for #{algo} compression"
       end
     end
   end

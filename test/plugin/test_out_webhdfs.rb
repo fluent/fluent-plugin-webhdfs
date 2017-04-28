@@ -149,6 +149,18 @@ path /hdfs/path/file.%Y%m%d.%H%M.log
           ]
         end
       end
+
+      data("%{uuid:hostname}" => "%{uuid:hostname}",
+           "%{uuid:timestamp}" => "%{uuid:timestamp}")
+      def test_obsoleted_placeholders(placeholder)
+        assert_raise Fluent::ConfigError do
+          create_driver %[
+            namenode server.local:14000
+            path /hdfs/path/#{placeholder}/file.%Y%m%d.%H%M.log
+            append false
+          ]
+        end
+      end
     end
   end
 end
