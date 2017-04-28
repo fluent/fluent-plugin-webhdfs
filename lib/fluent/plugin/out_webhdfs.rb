@@ -320,7 +320,7 @@ class Fluent::WebHDFSOutput < Fluent::TimeSlicedOutput
     hdfs_path = "#{hdfs_path}#{@compressor.ext}"
     if @replace_random_uuid
       uuid_random = SecureRandom.uuid
-      hdfs_path.gsub!('%{uuid}', uuid_random).gsub!('%{uuid_flush}', uuid_random)
+      hdfs_path = hdfs_path.gsub('%{uuid}', uuid_random).gsub('%{uuid_flush}', uuid_random)
     end
     hdfs_path
   end
