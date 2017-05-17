@@ -131,7 +131,10 @@ If you want to compress data before storing it:
     </match>
 
 Note that if you set `compress gzip`, then the suffix `.gz` will be added to path (or `.bz2`, `sz`, `.lzo`).
-Note that you have to install snappy gem if you want to  set `compress snappy`.
+Note that you have to install additional gem for several compress algorithms:
+
+- snappy: install snappy gem
+- bzip2: install bzip2-ffi gem
 
 ### Namenode HA / Auto retry for WebHDFS known errors
 
