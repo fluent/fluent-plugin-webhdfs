@@ -4,7 +4,11 @@ module Fluent::Plugin
       WebHDFSOutput.register_compressor('bzip2', self)
 
       def initialize(options = {})
-        require "bzip2/ffi"
+        begin
+          require "bzip2/ffi"
+        rescue LoadError
+          raise Fluent::ConfigError, "Install bzip2-ffi before use bzip2 compressor"
+        end
       end
 
       def ext

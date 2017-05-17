@@ -20,7 +20,7 @@ Gem::Specification.new do |gem|
   gem.add_development_dependency "test-unit-rr"
   gem.add_development_dependency "appraisal"
   gem.add_development_dependency "snappy", '>= 0.0.13'
+  gem.add_development_dependency "bzip2-ffi"
   gem.add_runtime_dependency "fluentd", '>= 0.14.4'
   gem.add_runtime_dependency "webhdfs", '>= 0.6.0'
-  gem.add_runtime_dependency "bzip2-ffi"
 end
