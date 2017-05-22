@@ -260,7 +260,7 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
     if @append
       begin
         @client.append(path, data)
-      rescue WebHDFS::FileNotFoundError
+      rescue WebHDFS::FileNotFoundError,WebHDFS::ServerError
         @client.create(path, data)
       end
     else
