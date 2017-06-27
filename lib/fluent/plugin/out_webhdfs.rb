@@ -64,6 +64,8 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
 
   desc 'Use kerberos authentication or not'
   config_param :kerberos, :bool, default: false
+  desc 'kerberos keytab file'
+  config_param :kerberos_keytab, :string, default: nil
 
   SUPPORTED_COMPRESS = [:gzip, :bzip2, :snappy, :lzo_command, :text]
   desc "Compress method (#{SUPPORTED_COMPRESS.join(',')})"
@@ -208,6 +210,7 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
     end
     if @kerberos
       client.kerberos = true
+      client.kerberos_keytab = @kerberos_keytab if @kerberos_keytab
     end
 
     client

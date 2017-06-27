@@ -145,6 +145,8 @@ With kerberos authentication:
       kerberos true
     </match>
 
+NOTE: You need to install `gssapi` gem to use kerberos. See https://github.com/kzk/webhdfs#for-kerberos-authentication
+
 If you want to compress data before storing it:
 
     <match access.**>
