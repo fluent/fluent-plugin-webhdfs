@@ -56,7 +56,9 @@ ssl true
 ssl_ca_file /path/to/ca_file.pem
 ssl_verify_mode peer
 kerberos true
+kerberos_keytab /path/to/kerberos.keytab
 ]
+
       assert_equal 'server.local', d.instance.instance_eval{ @namenode_host }
       assert_equal 14000, d.instance.instance_eval{ @namenode_port }
       assert_equal '/hdfs/path/file.%Y%m%d.%H%M.log', d.instance.path
@@ -65,6 +67,7 @@ kerberos true
       assert_equal '/path/to/ca_file.pem', d.instance.ssl_ca_file
       assert_equal :peer, d.instance.ssl_verify_mode
       assert_equal true, d.instance.kerberos
+      assert_equal '/path/to/kerberos.keytab', d.instance.kerberos_keytab
     end
 
     data(gzip: ['gzip', Fluent::WebHDFSOutput::GzipCompressor],
