@@ -89,7 +89,8 @@ class WebHDFSOutputTest < Test::Unit::TestCase
           "ssl" => true,
           "ssl_ca_file" => "/path/to/ca_file.pem",
           "ssl_verify_mode" => "peer",
-          "kerberos" => true
+          "kerberos" => true,
+          "kerberos_keytab" => "/path/to/kerberos.keytab"
         })
       d = create_driver(conf)
 
@@ -100,6 +101,7 @@ class WebHDFSOutputTest < Test::Unit::TestCase
       assert_equal '/path/to/ca_file.pem', d.instance.ssl_ca_file
       assert_equal :peer, d.instance.ssl_verify_mode
       assert_equal true, d.instance.kerberos
+      assert_equal '/path/to/kerberos.keytab', d.instance.kerberos_keytab
     end
 
     data(gzip: [:gzip, Fluent::Plugin::WebHDFSOutput::GzipCompressor],

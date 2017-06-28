@@ -143,7 +143,10 @@ With kerberos authentication:
       port 50070
       path /path/on/hdfs/access.log.%Y%m%d_%H.log
       kerberos true
+      kerberos_keytab /path/to/keytab # if needed
     </match>
+
+NOTE: You need to install `gssapi` gem for kerberos. See https://github.com/kzk/webhdfs#for-kerberos-authentication
 
 If you want to compress data before storing it:
 
