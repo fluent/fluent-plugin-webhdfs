@@ -168,6 +168,7 @@ class WebHDFSOutputTest < Test::Unit::TestCase
       metadata = d.instance.metadata("test", nil, {})
       chunk = d.instance.buffer.generate_chunk(metadata)
       assert_equal "/hdfs/path/file.#{dump_unique_id_hex(chunk.unique_id)}.log", d.instance.generate_path(chunk)
+      assert_empty d.instance.log.out.logs
     end
 
     data(path: { "append" => false },
