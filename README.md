@@ -1,5 +1,7 @@
 # fluent-plugin-webhdfs
 
+[![Build Status](https://travis-ci.org/fluent/fluent-plugin-webhdfs.svg?branch=master)](https://travis-ci.org/fluent/fluent-plugin-webhdfs)
+
 [Fluentd](http://fluentd.org/) output plugin to write data into Hadoop HDFS over WebHDFS/HttpFs.
 
 "webhdfs" output plugin formats data into plain text, and store it as files on HDFS. This plugin supports:
