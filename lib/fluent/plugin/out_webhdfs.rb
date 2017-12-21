@@ -98,20 +98,27 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
   end
 
   def configure(conf)
-    compat_parameters_convert(conf, :buffer, default_chunk_key: "time")
-
+    # #compat_parameters_convert ignore time format in conf["path"],
+    # so check conf["path"] and overwrite the default value later if needed
     timekey = case conf["path"]
               when /%S/ then 1
               when /%M/ then 60
               when /%H/ then 3600
               else 86400
               end
+    if buffer_config = conf.elements(name: "buffer").first
+      timekey = buffer_config["timekey"] || timekey 
+    end
+
+    compat_parameters_convert(conf, :buffer, default_chunk_key: "time")
+
     if conf.elements(name: "buffer").empty?
       e = Fluent::Config::Element.new("buffer", "time", {}, [])
       conf.elements << e
     end
     buffer_config = conf.elements(name: "buffer").first
-    buffer_config["timekey"] = timekey unless buffer_config["timekey"]
+    # explicitly set timekey
+    buffer_config["timekey"] = timekey
 
     compat_parameters_convert_plaintextformatter(conf)
     verify_config_placeholders_in_path!(conf)
