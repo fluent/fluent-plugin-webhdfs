@@ -315,9 +315,9 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
 
   def generate_path(chunk)
     hdfs_path = if @append
-                  extract_placeholders(@path, chunk.metadata)
+                  extract_placeholders(@path, chunk)
                 else
-                  extract_placeholders(@path.gsub(CHUNK_ID_PLACE_HOLDER, dump_unique_id_hex(chunk.unique_id)), chunk.metadata)
+                  extract_placeholders(@path.gsub(CHUNK_ID_PLACE_HOLDER, dump_unique_id_hex(chunk.unique_id)), chunk)
                 end
     hdfs_path = "#{hdfs_path}#{@compressor.ext}"
     if @replace_random_uuid
