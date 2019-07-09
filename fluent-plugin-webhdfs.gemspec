@@ -2,7 +2,7 @@
 
 Gem::Specification.new do |gem|
   gem.name          = "fluent-plugin-webhdfs"
-  gem.version       = "1.2.3"
+  gem.version       = "1.2.4"
   gem.authors       = ["TAGOMORI Satoshi"]
   gem.email         = ["tagomoris@gmail.com"]
   gem.summary       = %q{Fluentd plugin to write data on HDFS over WebHDFS, with flexible formatting}
