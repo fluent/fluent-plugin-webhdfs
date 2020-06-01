@@ -16,9 +16,10 @@ module Fluent::Plugin
       end
 
       def compress(chunk, tmp)
-        w = Snappy::Writer.new(tmp)
-        chunk.write_to(w)
-        w.close
+        Snappy::Writer.new(tmp) do |w|
+          w << chunk.read
+          w.flush
+        end
       end
     end
   end
