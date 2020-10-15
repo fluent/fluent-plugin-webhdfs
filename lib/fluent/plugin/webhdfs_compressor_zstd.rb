@@ -1,7 +1,7 @@
 module Fluent::Plugin
   class WebHDFSOutput < Output
     class ZstdCompressor < Compressor
-      WebHDFSOutput.register_compressor('zst', self)
+      WebHDFSOutput.register_compressor('zstd', self)
 
       def initialize(options = {})
         begin
@@ -12,7 +12,7 @@ module Fluent::Plugin
       end
 
       def ext
-        ".zstd"
+        ".zst"
       end
 
       def compress(chunk, tmp)
