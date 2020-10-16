@@ -165,6 +165,7 @@ Note that you have to install additional gem for several compress algorithms:
 
 - snappy: install snappy gem
 - bzip2: install bzip2-ffi gem
+- zstd: install zstandard gem
 
 Note that zstd will require installation of the libzstd native library. See the [zstandard-ruby](https://github.com/msievers/zstandard-ruby#examples-for-installing-libzstd) repo for infomration on the required packages for your operating system.
 

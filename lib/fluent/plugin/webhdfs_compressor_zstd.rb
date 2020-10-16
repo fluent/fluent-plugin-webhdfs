@@ -7,7 +7,7 @@ module Fluent::Plugin
         begin
           require "zstandard"
         rescue LoadError
-          raise Fluent::ConfigError, "Install libzstd before use zstd compressor"
+          raise Fluent::ConfigError, "Install zstandard gem before use of zstd compressor"
         end
       end
 

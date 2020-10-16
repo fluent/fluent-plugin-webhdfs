@@ -1,9 +1,6 @@
 require "helper"
 require "fluent/plugin/buf_memory"
-begin
-  require "zstandard"
-rescue LoadError
-end
+require 'zstandard'
 
 class ZstdCompressorTest < Test::Unit::TestCase
   class Zstd < self
@@ -24,7 +21,7 @@ class ZstdCompressorTest < Test::Unit::TestCase
     end
 
     def test_ext
-      assert_equal(".zstd", @compressor.ext)
+      assert_equal(".zst", @compressor.ext)
     end
 
     def test_compress
