@@ -157,14 +157,17 @@ If you want to compress data before storing it:
       host namenode.your.cluster.local
       port 50070
       path /path/on/hdfs/access.log.%Y%m%d_%H
-      compress gzip  # or 'bzip2', 'snappy', 'lzo_command'
+      compress gzip  # or 'bzip2', 'snappy', 'lzo_command', 'zstd'
     </match>
 
-Note that if you set `compress gzip`, then the suffix `.gz` will be added to path (or `.bz2`, `sz`, `.lzo`).
+Note that if you set `compress gzip`, then the suffix `.gz` will be added to path (or `.bz2`, `sz`, `.lzo`, `.zst`).
 Note that you have to install additional gem for several compress algorithms:
 
 - snappy: install snappy gem
 - bzip2: install bzip2-ffi gem
+- zstd: install zstandard gem
+
+Note that zstd will require installation of the libzstd native library. See the [zstandard-ruby](https://github.com/msievers/zstandard-ruby#examples-for-installing-libzstd) repo for infomration on the required packages for your operating system.
 
 ### Namenode HA / Auto retry for WebHDFS known errors
 
