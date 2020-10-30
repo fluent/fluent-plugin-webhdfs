@@ -71,6 +71,9 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
   desc "Compress method (#{SUPPORTED_COMPRESS.join(',')})"
   config_param :compress, :enum, list: SUPPORTED_COMPRESS, default: :text
 
+  desc 'HDFS file extensions (overrides default compressor extensions)'
+  config_param :extension, :string, default: nil
+
   config_param :remove_prefix, :string, default: nil, deprecated: "use @label for routing"
   config_param :default_tag, :string, default: nil, deprecated: "use @label for routing"
   config_param :null_value, :string, default: nil, deprecated: "use filter plugins to convert null values into any specified string"
@@ -319,7 +322,8 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
                 else
                   extract_placeholders(@path.gsub(CHUNK_ID_PLACE_HOLDER, dump_unique_id_hex(chunk.unique_id)), chunk)
                 end
-    hdfs_path = "#{hdfs_path}#{@compressor.ext}"
+    hdfs_ext = @extension || @compressor.ext
+    hdfs_path = "#{hdfs_path}#{hdfs_ext}"
     if @replace_random_uuid
       uuid_random = SecureRandom.uuid
       hdfs_path = hdfs_path.gsub('%{uuid}', uuid_random).gsub('%{uuid_flush}', uuid_random)

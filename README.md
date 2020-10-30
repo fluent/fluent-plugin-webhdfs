@@ -169,6 +169,20 @@ Note that you have to install additional gem for several compress algorithms:
 
 Note that zstd will require installation of the libzstd native library. See the [zstandard-ruby](https://github.com/msievers/zstandard-ruby#examples-for-installing-libzstd) repo for infomration on the required packages for your operating system.
 
+If you want to explicitly specify file extensions in HDFS (override default compressor extensions):
+
+    <match access.**>
+      @type webhdfs
+      host namenode.your.cluster.local
+      port 50070
+      path /path/on/hdfs/access.log.%Y%m%d_%H
+      compress snappy
+      extension ".snappy"
+    </match>
+
+With this configuration paths in HDFS will be like `/path/on/hdfs/access.log.20201003_12.snappy`.
+This one may be useful when (for example) you need to use snappy codec but `.sz` files are not recognized as snappy files in HDFS.
+
 ### Namenode HA / Auto retry for WebHDFS known errors
 
 `fluent-plugin-webhdfs` (v0.2.0 or later) accepts 2 namenodes for Namenode HA (active/standby). Use `standby_namenode` like this:
