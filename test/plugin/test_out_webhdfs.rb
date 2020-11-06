@@ -126,6 +126,26 @@ class WebHDFSOutputTest < Test::Unit::TestCase
       assert_equal '/hdfs/path/file.%Y%m%d.%H%M.log', d.instance.path
       assert_equal compress_type, d.instance.compress
       assert_equal compressor_class, d.instance.compressor.class
+
+      time = event_time("2020-10-03 15:07:00 +0300")
+      metadata = d.instance.metadata("test", time, {})
+      chunk = d.instance.buffer.generate_chunk(metadata)
+      assert_equal "/hdfs/path/file.20201003.1507.log#{d.instance.compressor.ext}", d.instance.generate_path(chunk)
+    end
+
+    def test_explicit_extensions
+      conf = config_element(
+        "ROOT", "", {
+          "host" => "namenode.local",
+          "path" => "/hdfs/path/file.%Y%m%d.log",
+          "compress" => "snappy",
+          "extension" => ".snappy"
+        })
+      d = create_driver(conf)
+      time = event_time("2020-10-07 15:15:00 +0300")
+      metadata = d.instance.metadata("test", time, {})
+      chunk = d.instance.buffer.generate_chunk(metadata)
+      assert_equal "/hdfs/path/file.20201007.log.snappy", d.instance.generate_path(chunk)
     end
 
     def test_placeholders_old_style
