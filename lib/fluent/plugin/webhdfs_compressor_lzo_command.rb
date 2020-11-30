@@ -5,8 +5,8 @@ module Fluent::Plugin
 
       config_param :command_parameter, :string, default: '-qf1'
 
-      def configure(conf)
-        super
+      def initialize(options = {})
+        super()
         check_command('lzop', 'LZO')
       end
 

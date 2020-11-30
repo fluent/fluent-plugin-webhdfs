@@ -169,6 +169,17 @@ Note that you have to install additional gem for several compress algorithms:
 
 Note that zstd will require installation of the libzstd native library. See the [zstandard-ruby](https://github.com/msievers/zstandard-ruby#examples-for-installing-libzstd) repo for infomration on the required packages for your operating system.
 
+You can also specify compression block size (currently supported only for Snappy codec):
+
+    <match access.**>
+      @type webhdfs
+      host namenode.your.cluster.local
+      port 50070
+      path /path/on/hdfs/access.log.%Y%m%d_%H
+      compress snappy
+      block_size 16384
+    </match>
+
 If you want to explicitly specify file extensions in HDFS (override default compressor extensions):
 
     <match access.**>

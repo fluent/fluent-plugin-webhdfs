@@ -148,6 +148,22 @@ class WebHDFSOutputTest < Test::Unit::TestCase
       assert_equal "/hdfs/path/file.20201007.log.snappy", d.instance.generate_path(chunk)
     end
 
+    data(snappy: [:snappy, Fluent::Plugin::WebHDFSOutput::SnappyCompressor])
+    def test_compression_block_size(data)
+      compress_type, compressor_class = data
+      conf = config_element(
+        "ROOT", "", {
+          "host" => "namenode.local",
+          "path" => "/hdfs/path/file.%Y%m%d.log",
+          "compress" => compress_type,
+          "block_size" => 16384
+        })
+      d = create_driver(conf)
+
+      assert_equal compress_type, d.instance.compress
+      assert_equal 16384, d.instance.compressor.block_size
+    end
+
     def test_placeholders_old_style
       conf = config_element(
         "ROOT", "", {

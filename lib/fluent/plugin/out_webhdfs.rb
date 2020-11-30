@@ -156,6 +156,7 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
     end
 
     @compressor = COMPRESSOR_REGISTRY.lookup(@compress.to_s).new
+    @compressor.configure(conf)
 
     if @host
       @namenode_host = @host
@@ -506,7 +507,7 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
       begin
         Open3.capture3("#{command} -V")
       rescue Errno::ENOENT
-        raise ConfigError, "'#{command}' utility must be in PATH for #{algo} compression"
+        raise Fluent::ConfigError, "'#{command}' utility must be in PATH for #{algo} compression"
       end
     end
   end
