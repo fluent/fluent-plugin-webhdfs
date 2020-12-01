@@ -67,8 +67,8 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
   desc 'kerberos keytab file'
   config_param :kerberos_keytab, :string, default: nil
 
-  SUPPORTED_COMPRESS = [:gzip, :bzip2, :snappy, :lzo_command, :zstd, :text]
-  desc "Compress method (#{SUPPORTED_COMPRESS.join(',')})"
+  SUPPORTED_COMPRESS = [:gzip, :bzip2, :snappy, :hadoop_snappy, :lzo_command, :zstd, :text]
+  desc "Compression method (#{SUPPORTED_COMPRESS.join(',')})"
   config_param :compress, :enum, list: SUPPORTED_COMPRESS, default: :text
 
   desc 'HDFS file extensions (overrides default compressor extensions)'
@@ -523,5 +523,6 @@ require 'fluent/plugin/webhdfs_compressor_text'
 require 'fluent/plugin/webhdfs_compressor_gzip'
 require 'fluent/plugin/webhdfs_compressor_bzip2'
 require 'fluent/plugin/webhdfs_compressor_snappy'
+require 'fluent/plugin/webhdfs_compressor_hadoop_snappy'
 require 'fluent/plugin/webhdfs_compressor_lzo_command'
 require 'fluent/plugin/webhdfs_compressor_zstd'

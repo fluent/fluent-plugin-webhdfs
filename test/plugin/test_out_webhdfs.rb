@@ -107,6 +107,7 @@ class WebHDFSOutputTest < Test::Unit::TestCase
     data(gzip: [:gzip, Fluent::Plugin::WebHDFSOutput::GzipCompressor],
          bzip2: [:bzip2, Fluent::Plugin::WebHDFSOutput::Bzip2Compressor],
          snappy: [:snappy, Fluent::Plugin::WebHDFSOutput::SnappyCompressor],
+         hadoop_snappy: [:hadoop_snappy, Fluent::Plugin::WebHDFSOutput::HadoopSnappyCompressor],
          lzo: [:lzo_command, Fluent::Plugin::WebHDFSOutput::LZOCommandCompressor])
     def test_compress(data)
       compress_type, compressor_class = data
@@ -148,7 +149,8 @@ class WebHDFSOutputTest < Test::Unit::TestCase
       assert_equal "/hdfs/path/file.20201007.log.snappy", d.instance.generate_path(chunk)
     end
 
-    data(snappy: [:snappy, Fluent::Plugin::WebHDFSOutput::SnappyCompressor])
+    data(snappy: [:snappy, Fluent::Plugin::WebHDFSOutput::SnappyCompressor],
+         hadoop_snappy: [:hadoop_snappy, Fluent::Plugin::WebHDFSOutput::HadoopSnappyCompressor])
     def test_compression_block_size(data)
       compress_type, compressor_class = data
       conf = config_element(
