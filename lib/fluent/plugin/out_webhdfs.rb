@@ -270,15 +270,20 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
   end
 
   def send_data(path, data)
-    if @append
-      begin
-        @client.append(path, data)
-      rescue WebHDFS::FileNotFoundError
-        @client.create(path, data)
-      end
+    return @client.create(path, data, {'overwrite' => 'true'}) unless @append
+
+    if path_exists?(path)
+      @client.append(path, data)
     else
-      @client.create(path, data, {'overwrite' => 'true'})
+      @client.create(path, data)
     end
+  end
+
+  def path_exists?(path)
+    @client.stat(path)
+    true
+  rescue WebHDFS::FileNotFoundError
+    false
   end
 
   HOSTNAME_PLACEHOLDERS_DEPRECATED = ['${hostname}', '%{hostname}', '__HOSTNAME__']
