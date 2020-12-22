@@ -254,7 +254,7 @@ For high load cluster nodes, you can specify timeouts for HTTP requests.
 
 ### For unstable Namenodes
 
-With default configuration, fluent-plugin-webhdfs checks HDFS filesystem status and raise error for inacive NameNodes.
+With default configuration, fluent-plugin-webhdfs checks HDFS filesystem status and raise error for inactive NameNodes.
 
 If you were using unstable NameNodes and have wanted to ignore NameNode errors on startup of fluentd, enable `ignore_start_check_error` option like below:
 
