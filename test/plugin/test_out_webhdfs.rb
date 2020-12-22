@@ -117,7 +117,13 @@ class WebHDFSOutputTest < Test::Unit::TestCase
             "namenode" => "server.local:14000",
             "path" => "/hdfs/path/file.%Y%m%d.%H%M.log",
             "compress" => compress_type
-          })
+          }, [
+            config_element("buffer", "tag, time", {
+                             "@type" => "memory",
+                             "timekey_zone" => "+0300",
+                             "timekey" => 60
+                           })
+          ])
         d = create_driver(conf)
       rescue Fluent::ConfigError => ex
         omit ex.message
