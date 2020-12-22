@@ -67,8 +67,8 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
   desc 'kerberos keytab file'
   config_param :kerberos_keytab, :string, default: nil
 
-  SUPPORTED_COMPRESS = [:gzip, :bzip2, :snappy, :lzo_command, :zstd, :text]
-  desc "Compress method (#{SUPPORTED_COMPRESS.join(',')})"
+  SUPPORTED_COMPRESS = [:gzip, :bzip2, :snappy, :hadoop_snappy, :lzo_command, :zstd, :text]
+  desc "Compression method (#{SUPPORTED_COMPRESS.join(',')})"
   config_param :compress, :enum, list: SUPPORTED_COMPRESS, default: :text
 
   desc 'HDFS file extensions (overrides default compressor extensions)'
@@ -156,6 +156,7 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
     end
 
     @compressor = COMPRESSOR_REGISTRY.lookup(@compress.to_s).new
+    @compressor.configure(conf)
 
     if @host
       @namenode_host = @host
@@ -511,7 +512,7 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
       begin
         Open3.capture3("#{command} -V")
       rescue Errno::ENOENT
-        raise ConfigError, "'#{command}' utility must be in PATH for #{algo} compression"
+        raise Fluent::ConfigError, "'#{command}' utility must be in PATH for #{algo} compression"
       end
     end
   end
@@ -527,5 +528,6 @@ require 'fluent/plugin/webhdfs_compressor_text'
 require 'fluent/plugin/webhdfs_compressor_gzip'
 require 'fluent/plugin/webhdfs_compressor_bzip2'
 require 'fluent/plugin/webhdfs_compressor_snappy'
+require 'fluent/plugin/webhdfs_compressor_hadoop_snappy'
 require 'fluent/plugin/webhdfs_compressor_lzo_command'
 require 'fluent/plugin/webhdfs_compressor_zstd'

@@ -157,17 +157,29 @@ If you want to compress data before storing it:
       host namenode.your.cluster.local
       port 50070
       path /path/on/hdfs/access.log.%Y%m%d_%H
-      compress gzip  # or 'bzip2', 'snappy', 'lzo_command', 'zstd'
+      compress gzip  # or 'bzip2', 'snappy', 'hadoop_snappy', 'lzo_command', 'zstd'
     </match>
 
-Note that if you set `compress gzip`, then the suffix `.gz` will be added to path (or `.bz2`, `sz`, `.lzo`, `.zst`).
+Note that if you set `compress gzip`, then the suffix `.gz` will be added to path (or `.bz2`, `.sz`, `.snappy`, `.lzo`, `.zst`).
 Note that you have to install additional gem for several compress algorithms:
 
 - snappy: install snappy gem
+- hadoop_snappy: install snappy gem
 - bzip2: install bzip2-ffi gem
 - zstd: install zstandard gem
 
 Note that zstd will require installation of the libzstd native library. See the [zstandard-ruby](https://github.com/msievers/zstandard-ruby#examples-for-installing-libzstd) repo for infomration on the required packages for your operating system.
+
+You can also specify compression block size (currently supported only for Snappy codecs):
+
+    <match access.**>
+      @type webhdfs
+      host namenode.your.cluster.local
+      port 50070
+      path /path/on/hdfs/access.log.%Y%m%d_%H
+      compress hadoop_snappy
+      block_size 32768
+    </match>
 
 If you want to explicitly specify file extensions in HDFS (override default compressor extensions):
 

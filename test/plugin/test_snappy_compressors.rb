@@ -5,7 +5,7 @@ begin
 rescue LoadError
 end
 
-class CompressorTest < Test::Unit::TestCase
+class SnappyCompressorsTest < Test::Unit::TestCase
   class Snappy < self
 
     CONFIG = %[
@@ -16,7 +16,17 @@ class CompressorTest < Test::Unit::TestCase
     def setup
       omit unless Object.const_defined?(:Snappy)
       Fluent::Test.setup
-      @compressor = Fluent::Plugin::WebHDFSOutput::SnappyCompressor.new
+
+      @compressors_size = 2
+      @compressors = [
+        Fluent::Plugin::WebHDFSOutput::SnappyCompressor.new,
+        Fluent::Plugin::WebHDFSOutput::HadoopSnappyCompressor.new
+      ]
+      @readers = [
+        ::Snappy::Reader,
+        ::Snappy::Hadoop::Reader
+      ]
+      @exts = [".sz", ".snappy"]
     end
 
     def create_driver(conf = CONFIG)
@@ -24,7 +34,9 @@ class CompressorTest < Test::Unit::TestCase
     end
 
     def test_ext
-      assert_equal(".sz", @compressor.ext)
+      for i in 0...@compressors_size do
+        assert_equal(@exts[i], @compressors[i].ext)
+      end
     end
 
     def test_compress
@@ -43,15 +55,17 @@ class CompressorTest < Test::Unit::TestCase
         chunk << "hello snappy\n" * 32 * 1024
       end
 
-      io = Tempfile.new("snappy-")
-      @compressor.compress(chunk, io)
-      io.open
-      chunk_bytesize = chunk.respond_to?(:bytesize) ? chunk.bytesize : chunk.size
-      assert(chunk_bytesize > io.read.bytesize)
-      io.rewind
-      reader = ::Snappy::Reader.new(io)
-      assert_equal(chunk.read, reader.read)
-      io.close
+      for i in 0...@compressors_size do
+        io = Tempfile.new("snappy-")
+        @compressors[i].compress(chunk, io)
+        io.open
+        chunk_bytesize = chunk.respond_to?(:bytesize) ? chunk.bytesize : chunk.size
+        assert(chunk_bytesize > io.read.bytesize)
+        io.rewind
+        reader = @readers[i].new(io)
+        assert_equal(chunk.read, reader.read)
+        io.close
+      end
     end
   end
 end
