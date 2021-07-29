@@ -66,6 +66,10 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
   config_param :kerberos, :bool, default: false
   desc 'kerberos keytab file'
   config_param :kerberos_keytab, :string, default: nil
+  desc 'Use delegation token while upload webhdfs or not'
+  config_param :reuse_delegation_token, :bool, default: false
+  desc 'delegation token reuse timer in hour (default 8)'
+  config_param :renew_delegation_token_time_hr, :integer, default: 8
 
   SUPPORTED_COMPRESS = [:gzip, :bzip2, :snappy, :hadoop_snappy, :lzo_command, :zstd, :text]
   desc "Compression method (#{SUPPORTED_COMPRESS.join(',')})"
@@ -184,6 +188,14 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
       raise Fluent::ConfigError, "Path on hdfs MUST starts with '/', but '#{@path}'"
     end
 
+    if @reuse_delegation_token
+      unless @username
+        raise Fluent::ConfigError, "username is missing. If you want to reuse delegation token, follow with kerberos accounts"
+      end
+    else
+      @renew_delegation_token_time_hr = nil
+    end
+
     @client = prepare_client(@namenode_host, @namenode_port, @username)
     if @standby_namenode_host
       @client_standby = prepare_client(@standby_namenode_host, @standby_namenode_port, @username)
@@ -203,7 +215,7 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
   end
 
   def prepare_client(host, port, username)
-    client = WebHDFS::Client.new(host, port, username)
+    client = WebHDFS::Client.new(host, port, username, nil, nil, nil, {}, @renew_delegation_token_time_hr)
     if @httpfs
       client.httpfs_mode = true
     end
