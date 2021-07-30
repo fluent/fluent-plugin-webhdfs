@@ -69,7 +69,7 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
   desc 'Use delegation token while upload webhdfs or not'
   config_param :reuse_delegation_token, :bool, default: false
   desc 'delegation token reuse timer in hour (default 8)'
-  config_param :renew_delegation_token_time_hr, :integer, default: 8
+  config_param :renew_kerberos_delegation_token_time_hour, :integer, default: 8
 
   SUPPORTED_COMPRESS = [:gzip, :bzip2, :snappy, :hadoop_snappy, :lzo_command, :zstd, :text]
   desc "Compression method (#{SUPPORTED_COMPRESS.join(',')})"
@@ -193,7 +193,7 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
         raise Fluent::ConfigError, "username is missing. If you want to reuse delegation token, follow with kerberos accounts"
       end
     else
-      @renew_delegation_token_time_hr = nil
+      @renew_kerberos_delegation_token_time_hour = nil
     end
 
     @client = prepare_client(@namenode_host, @namenode_port, @username)
@@ -215,7 +215,7 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
   end
 
   def prepare_client(host, port, username)
-    client = WebHDFS::Client.new(host, port, username, nil, nil, nil, {}, @renew_delegation_token_time_hr)
+    client = WebHDFS::Client.new(host, port, username, nil, nil, nil, {}, @renew_kerberos_delegation_token_time_hour)
     if @httpfs
       client.httpfs_mode = true
     end
