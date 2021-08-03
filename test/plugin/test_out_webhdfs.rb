@@ -327,7 +327,7 @@ class WebHDFSOutputTest < Test::Unit::TestCase
         "kerberos_keytab" => "/path/to/kerberos.keytab",
       })
 
-    test "reuse_delegation_token default" do
+    test "renew_kerberos_delegation_token default" do
       mock.proxy(WebHDFS::Client).new("server.local", 14000, "hdfs_user", nil, nil, nil, {}, nil).once
 
       d = create_driver(CONFIG_KERBEROS)
@@ -335,71 +335,75 @@ class WebHDFSOutputTest < Test::Unit::TestCase
       assert_equal(
         {
           kerberos: true,
-          reuse_delegation_token: false,
+          renew_kerberos_delegation_token: false,
           renew_kerberos_delegation_token_time_hour: nil,
         },
         {
           kerberos: d.instance.kerberos,
-          reuse_delegation_token: d.instance.instance_eval("@reuse_delegation_token"),
+          renew_kerberos_delegation_token: d.instance.instance_eval("@renew_kerberos_delegation_token"),
           renew_kerberos_delegation_token_time_hour: d.instance.instance_eval("@renew_kerberos_delegation_token_time_hour"),
         })
     end
 
-    test "default renew_kerberos_delegation_token_time_hour" do
-      expected_hour = 8
+    test "default renew_kerberos_delegation_token_time" do
+      expected_hour = '8h'
 
-      mock.proxy(WebHDFS::Client).new("server.local", 14000, "hdfs_user", nil, nil, nil, {}, expected_hour).once
+      mock.proxy(WebHDFS::Client).new("server.local", 14000, "hdfs_user", nil, nil, nil, {}, expected_hour.to_i).once
 
       d = create_driver(CONFIG_KERBEROS +
-                        config_element("", "", { "reuse_delegation_token" => true }))
+                        config_element("", "", { "renew_kerberos_delegation_token" => true }))
 
       assert_equal(
         {
           kerberos: true,
-          reuse_delegation_token: true,
-          renew_kerberos_delegation_token_time_hour: expected_hour,
+          renew_kerberos_delegation_token: true,
+          renew_kerberos_delegation_token_time: expected_hour,
+          renew_kerberos_delegation_token_time_hour: expected_hour.to_i,
         },
         {
           kerberos: d.instance.kerberos,
-          reuse_delegation_token: d.instance.instance_eval("@reuse_delegation_token"),
+          renew_kerberos_delegation_token: d.instance.instance_eval("@renew_kerberos_delegation_token"),
+          renew_kerberos_delegation_token_time: d.instance.instance_eval("@renew_kerberos_delegation_token_time"),
           renew_kerberos_delegation_token_time_hour: d.instance.instance_eval("@renew_kerberos_delegation_token_time_hour"),
         })
     end
 
-    test "renew_kerberos_delegation_token_time_hour" do
-      expected_hour = 10
+    test "renew_kerberos_delegation_token_time" do
+      expected_hour = '10h'
 
-      mock.proxy(WebHDFS::Client).new("server.local", 14000, "hdfs_user", nil, nil, nil, {}, expected_hour).once
+      mock.proxy(WebHDFS::Client).new("server.local", 14000, "hdfs_user", nil, nil, nil, {}, expected_hour.to_i).once
 
       d = create_driver(
         CONFIG_KERBEROS +
         config_element(
           "", "",
           {
-            "reuse_delegation_token" => true,
-            "renew_kerberos_delegation_token_time_hour" => expected_hour,
+            "renew_kerberos_delegation_token" => true,
+            "renew_kerberos_delegation_token_time" => expected_hour,
           }))
 
       assert_equal(
         {
           kerberos: true,
-          reuse_delegation_token: true,
-          renew_kerberos_delegation_token_time_hour: expected_hour,
+          renew_kerberos_delegation_token: true,
+          renew_kerberos_delegation_token_time: expected_hour.to_i * 60 * 60,
+          renew_kerberos_delegation_token_time_hour: expected_hour.to_i,
         },
         {
           kerberos: d.instance.kerberos,
-          reuse_delegation_token: d.instance.instance_eval("@reuse_delegation_token"),
+          renew_kerberos_delegation_token: d.instance.instance_eval("@renew_kerberos_delegation_token"),
+          renew_kerberos_delegation_token_time: d.instance.instance_eval("@renew_kerberos_delegation_token_time"),
           renew_kerberos_delegation_token_time_hour: d.instance.instance_eval("@renew_kerberos_delegation_token_time_hour"),
         })
     end
 
-    test "username is required for reuse_delegation_token" do
+    test "username is required for renew_kerberos_delegation_token" do
       conf = config_element(
       "ROOT", "", {
         "namenode" => "server.local:14000",
         "path" => "/hdfs/path/file.%Y%m%d.%H%M.log",
         "kerberos" => true,
-        "reuse_delegation_token" => true,
+        "renew_kerberos_delegation_token" => true,
       })
 
       assert_raise(Fluent::ConfigError) do
