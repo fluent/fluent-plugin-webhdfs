@@ -146,7 +146,7 @@ With kerberos authentication:
       path /path/on/hdfs/access.log.%Y%m%d_%H.log
       kerberos true
       kerberos_keytab /path/to/keytab # if needed
-      reuse_delegation_token true # if needed
+      renew_kerberos_delegation_token true # if needed
     </match>
 
 NOTE: You need to install `gssapi` gem for kerberos. See https://github.com/kzk/webhdfs#for-kerberos-authentication
