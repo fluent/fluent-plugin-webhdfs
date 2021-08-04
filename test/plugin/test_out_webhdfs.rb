@@ -336,16 +336,16 @@ class WebHDFSOutputTest < Test::Unit::TestCase
         {
           kerberos: true,
           renew_kerberos_delegation_token: false,
-          renew_kerberos_delegation_token_time_hour: nil,
+          renew_kerberos_delegation_token_interval_hour: nil,
         },
         {
           kerberos: d.instance.kerberos,
           renew_kerberos_delegation_token: d.instance.instance_eval("@renew_kerberos_delegation_token"),
-          renew_kerberos_delegation_token_time_hour: d.instance.instance_eval("@renew_kerberos_delegation_token_time_hour"),
+          renew_kerberos_delegation_token_interval_hour: d.instance.instance_eval("@renew_kerberos_delegation_token_interval_hour"),
         })
     end
 
-    test "default renew_kerberos_delegation_token_time" do
+    test "default renew_kerberos_delegation_token_interval" do
       expected_hour = 8
 
       mock.proxy(WebHDFS::Client).new("server.local", 14000, "hdfs_user", nil, nil, nil, {}, expected_hour).once
@@ -357,18 +357,18 @@ class WebHDFSOutputTest < Test::Unit::TestCase
         {
           kerberos: true,
           renew_kerberos_delegation_token: true,
-          renew_kerberos_delegation_token_time: expected_hour * 60 * 60,
-          renew_kerberos_delegation_token_time_hour: expected_hour,
+          renew_kerberos_delegation_token_interval: expected_hour * 60 * 60,
+          renew_kerberos_delegation_token_interval_hour: expected_hour,
         },
         {
           kerberos: d.instance.kerberos,
           renew_kerberos_delegation_token: d.instance.instance_eval("@renew_kerberos_delegation_token"),
-          renew_kerberos_delegation_token_time: d.instance.instance_eval("@renew_kerberos_delegation_token_time"),
-          renew_kerberos_delegation_token_time_hour: d.instance.instance_eval("@renew_kerberos_delegation_token_time_hour"),
+          renew_kerberos_delegation_token_interval: d.instance.instance_eval("@renew_kerberos_delegation_token_interval"),
+          renew_kerberos_delegation_token_interval_hour: d.instance.instance_eval("@renew_kerberos_delegation_token_interval_hour"),
         })
     end
 
-    test "renew_kerberos_delegation_token_time" do
+    test "renew_kerberos_delegation_token_interval" do
       expected_hour = 10
 
       mock.proxy(WebHDFS::Client).new("server.local", 14000, "hdfs_user", nil, nil, nil, {}, expected_hour).once
@@ -379,21 +379,21 @@ class WebHDFSOutputTest < Test::Unit::TestCase
           "", "",
           {
             "renew_kerberos_delegation_token" => true,
-            "renew_kerberos_delegation_token_time" => "#{expected_hour}h",
+            "renew_kerberos_delegation_token_interval" => "#{expected_hour}h",
           }))
 
       assert_equal(
         {
           kerberos: true,
           renew_kerberos_delegation_token: true,
-          renew_kerberos_delegation_token_time: expected_hour * 60 * 60,
-          renew_kerberos_delegation_token_time_hour: expected_hour,
+          renew_kerberos_delegation_token_interval: expected_hour * 60 * 60,
+          renew_kerberos_delegation_token_interval_hour: expected_hour,
         },
         {
           kerberos: d.instance.kerberos,
           renew_kerberos_delegation_token: d.instance.instance_eval("@renew_kerberos_delegation_token"),
-          renew_kerberos_delegation_token_time: d.instance.instance_eval("@renew_kerberos_delegation_token_time"),
-          renew_kerberos_delegation_token_time_hour: d.instance.instance_eval("@renew_kerberos_delegation_token_time_hour"),
+          renew_kerberos_delegation_token_interval: d.instance.instance_eval("@renew_kerberos_delegation_token_interval"),
+          renew_kerberos_delegation_token_interval_hour: d.instance.instance_eval("@renew_kerberos_delegation_token_interval_hour"),
         })
     end
 
