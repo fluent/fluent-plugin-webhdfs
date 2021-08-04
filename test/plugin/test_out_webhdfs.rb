@@ -346,9 +346,9 @@ class WebHDFSOutputTest < Test::Unit::TestCase
     end
 
     test "default renew_kerberos_delegation_token_time" do
-      expected_hour = '8h'
+      expected_hour = 8
 
-      mock.proxy(WebHDFS::Client).new("server.local", 14000, "hdfs_user", nil, nil, nil, {}, expected_hour.to_i).once
+      mock.proxy(WebHDFS::Client).new("server.local", 14000, "hdfs_user", nil, nil, nil, {}, expected_hour).once
 
       d = create_driver(CONFIG_KERBEROS +
                         config_element("", "", { "renew_kerberos_delegation_token" => true }))
@@ -357,8 +357,8 @@ class WebHDFSOutputTest < Test::Unit::TestCase
         {
           kerberos: true,
           renew_kerberos_delegation_token: true,
-          renew_kerberos_delegation_token_time: expected_hour,
-          renew_kerberos_delegation_token_time_hour: expected_hour.to_i,
+          renew_kerberos_delegation_token_time: expected_hour * 60 * 60,
+          renew_kerberos_delegation_token_time_hour: expected_hour,
         },
         {
           kerberos: d.instance.kerberos,
@@ -369,9 +369,9 @@ class WebHDFSOutputTest < Test::Unit::TestCase
     end
 
     test "renew_kerberos_delegation_token_time" do
-      expected_hour = '10h'
+      expected_hour = 10
 
-      mock.proxy(WebHDFS::Client).new("server.local", 14000, "hdfs_user", nil, nil, nil, {}, expected_hour.to_i).once
+      mock.proxy(WebHDFS::Client).new("server.local", 14000, "hdfs_user", nil, nil, nil, {}, expected_hour).once
 
       d = create_driver(
         CONFIG_KERBEROS +
@@ -379,15 +379,15 @@ class WebHDFSOutputTest < Test::Unit::TestCase
           "", "",
           {
             "renew_kerberos_delegation_token" => true,
-            "renew_kerberos_delegation_token_time" => expected_hour,
+            "renew_kerberos_delegation_token_time" => "#{expected_hour}h",
           }))
 
       assert_equal(
         {
           kerberos: true,
           renew_kerberos_delegation_token: true,
-          renew_kerberos_delegation_token_time: expected_hour.to_i * 60 * 60,
-          renew_kerberos_delegation_token_time_hour: expected_hour.to_i,
+          renew_kerberos_delegation_token_time: expected_hour * 60 * 60,
+          renew_kerberos_delegation_token_time_hour: expected_hour,
         },
         {
           kerberos: d.instance.kerberos,

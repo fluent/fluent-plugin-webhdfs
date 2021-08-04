@@ -69,7 +69,7 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
   desc 'Use delegation token while upload webhdfs or not'
   config_param :renew_kerberos_delegation_token, :bool, default: false
   desc 'delegation token reuse timer (default 8h)'
-  config_param :renew_kerberos_delegation_token_time, :time, default: '8h'
+  config_param :renew_kerberos_delegation_token_time, :time, default: 8 * 60 * 60
 
   SUPPORTED_COMPRESS = [:gzip, :bzip2, :snappy, :hadoop_snappy, :lzo_command, :zstd, :text]
   desc "Compression method (#{SUPPORTED_COMPRESS.join(',')})"
