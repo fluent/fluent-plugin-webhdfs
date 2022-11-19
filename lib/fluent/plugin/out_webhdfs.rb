@@ -300,11 +300,9 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
   end
 
   def namenode_replace_to_standby(index)
-    if @clients_standby
-      @client_ha_index = index
-      @client = @clients_standby[@client_ha_index]
-      log.warn "Namenode failovered, now using #{@client.host}:#{@client.port}."
-    end
+    @client_ha_index = index
+    @client = @clients_standby[@client_ha_index]
+    log.warn "Namenode failovered, now using #{@client.host}:#{@client.port}."
   end
 
   def send_data(path, data)
