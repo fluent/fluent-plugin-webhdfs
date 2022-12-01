@@ -20,9 +20,6 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
   config_param :namenode, :string, default: nil # host:port
   desc 'Standby namenode for Namenode HA (host:port)'
   config_param :standby_namenode, :string, default: nil # host:port
-  desc 'Standby namenodes for Namenode HA (host:port)'
-  config_param :standby_namenodes, :string, default: nil # host:port
-
   desc 'Ignore errors on start up'
   config_param :ignore_start_check_error, :bool, default: false
 
@@ -176,26 +173,14 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
     else
       raise Fluent::ConfigError, "WebHDFS host or namenode missing"
     end
+
+    # If you're running three or more name nodes
+    # I want to name "standby_namenode" to "standby_namenodes", but I keep it's name because there may be compatibility issues
     if @standby_namenode
       @standby_namenode_group = Array.new
-      unless /\A([a-zA-Z0-9][-a-zA-Z0-9.]*):(\d+)\Z/ =~ @standby_namenode
-        raise Fluent::ConfigError, "Invalid config value about standby namenode: '#{@standby_namenode}', needs STANDBY_NAMENODE_HOST:PORT"
-      end
-      if @httpfs
-        raise Fluent::ConfigError, "Invalid configuration: specified to use both of standby_namenode and httpfs."
-      end
-      if @standby_namenodes
-        raise Fluent::ConfigError, "Only one of the standby_namenode and standby_namenodes settings is available"
-      end
-      @standby_namenode_group << {host:$1 ,port:$2.to_i}
-    end
-    # If you're running three or more name nodes
-    # I want to modify standby_namenode, but I want to specify it as a separate variable because there may be compatibility issues
-    if @standby_namenodes
-      @standby_namenode_group = Array.new
-      for @standby_namenode in @standby_namenodes.split do
-        unless /\A([a-zA-Z0-9][-a-zA-Z0-9.]*):(\d+)\Z/ =~ @standby_namenode
-          raise Fluent::ConfigError, "Invalid config value about standby namenode: '#{@standby_namenode}', needs STANDBY_NAMENODE_HOST:PORT"
+      for standby_namenode_content in @standby_namenode.split do
+        unless /\A([a-zA-Z0-9][-a-zA-Z0-9.]*):(\d+)\Z/ =~ standby_namenode_content
+          raise Fluent::ConfigError, "Invalid config value about standby namenode: '#{standby_namenode_content}', needs STANDBY_NAMENODE_HOST:PORT"
         end
         if @httpfs
           raise Fluent::ConfigError, "Invalid configuration: specified to use both of standby_namenode and httpfs."
@@ -203,6 +188,7 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
         @standby_namenode_group << {host:$1 ,port:$2.to_i}
       end
     end
+
     unless @path.index('/') == 0
       raise Fluent::ConfigError, "Path on hdfs MUST starts with '/', but '#{@path}'"
     end
@@ -281,6 +267,7 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
       log.info "webhdfs connection confirmed: #{@namenode_host}:#{@namenode_port}"
       return
     end
+    # if we use "standby_namenode", check all of usable standby_namenodes
     if @clients_standby
       for client_standby_check in @clients_standby do
         if namenode_available(client_standby_check)
@@ -299,6 +286,8 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
     e.is_a?(WebHDFS::IOError) && e.message.match(/org\.apache\.hadoop\.ipc\.StandbyException/)
   end
 
+  # Add function
+  # Change the main namenode to the value of a specific index in the standby namenode.
   def namenode_replace_to_standby(index)
     @client_ha_index = index
     @client = @clients_standby[@client_ha_index]
@@ -425,6 +414,8 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
     ''
   end
 
+  # Modify function
+  # if occured the failover, check standby_namenodes and change usable standby namenode to main namenode
   def namenode_failover
     @clients_standby.each_with_index do |client_standby, idx|
       if namenode_available(client_standby)
