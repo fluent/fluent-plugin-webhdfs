@@ -177,6 +177,7 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
     # If you're running three or more name nodes
     # I want to name "standby_namenode" to "standby_namenodes", but I keep it's name because there may be compatibility issues
     if @standby_namenode
+      # we use standby_namenode_group for switch namenode freely
       @standby_namenode_group = Array.new
       for standby_namenode_content in @standby_namenode.split do
         unless /\A([a-zA-Z0-9][-a-zA-Z0-9.]*):(\d+)\Z/ =~ standby_namenode_content
@@ -202,6 +203,7 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
     end
     
     @client = prepare_client(@namenode_host, @namenode_port, @username)
+    # Use clients_standby for finding available namenode
     if @standby_namenode_group
       @clients_standby = @standby_namenode_group.map{ |node| prepare_client(node[:host],node[:port],@username) }
       @clients_standby = @clients_standby.prepend(@client)
@@ -267,7 +269,7 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
       log.info "webhdfs connection confirmed: #{@namenode_host}:#{@namenode_port}"
       return
     end
-    # if we use "standby_namenode", check all of usable standby_namenodes
+    # if we use "standby_namenode", check all of available standby_namenodes
     if @clients_standby
       for client_standby_check in @clients_standby do
         if namenode_available(client_standby_check)
@@ -415,7 +417,7 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
   end
 
   # Modify function
-  # if occured the failover, check standby_namenodes and change usable standby namenode to main namenode
+  # if occured the failover, check standby_namenodes and change available standby namenode to main namenode
   def namenode_failover
     @clients_standby.each_with_index do |client_standby, idx|
       if namenode_available(client_standby)
