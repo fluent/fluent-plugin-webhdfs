@@ -70,6 +70,8 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
   config_param :renew_kerberos_delegation_token, :bool, default: false
   desc 'delegation token reuse timer (default 8h)'
   config_param :renew_kerberos_delegation_token_interval, :time, default: 8 * 60 * 60
+  desc 'delegation token max-lifetime (default 7d)'
+  config_param :kerberos_delegation_token_max_lifetime, :time, default: 7 * 24 * 60 * 60
 
   SUPPORTED_COMPRESS = [:gzip, :bzip2, :snappy, :hadoop_snappy, :lzo_command, :zstd, :text]
   desc "Compression method (#{SUPPORTED_COMPRESS.join(',')})"
@@ -114,7 +116,7 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
               else 86400
               end
     if buffer_config = conf.elements(name: "buffer").first
-      timekey = buffer_config["timekey"] || timekey 
+      timekey = buffer_config["timekey"] || timekey
     end
 
     compat_parameters_convert(conf, :buffer, default_chunk_key: "time")
@@ -189,7 +191,9 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
     end
 
     @renew_kerberos_delegation_token_interval_hour = nil
+    @kerberos_delegation_token_max_lifetime_hour = nil
     if @renew_kerberos_delegation_token
+      @kerberos_delegation_token_max_lifetime_hour = @kerberos_delegation_token_max_lifetime / 60 / 60
       unless @username
         raise Fluent::ConfigError, "username is missing. If you want to reuse delegation token, follow with kerberos accounts"
       end
@@ -215,7 +219,7 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
   end
 
   def prepare_client(host, port, username)
-    client = WebHDFS::Client.new(host, port, username, nil, nil, nil, {}, @renew_kerberos_delegation_token_interval_hour)
+    client = WebHDFS::Client.new(host, port, username, nil, nil, nil, {}, @renew_kerberos_delegation_token_interval_hour, @kerberos_delegation_token_max_lifetime_hour)
     if @httpfs
       client.httpfs_mode = true
     end
