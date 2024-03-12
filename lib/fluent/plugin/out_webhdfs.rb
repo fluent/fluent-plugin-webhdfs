@@ -70,6 +70,8 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
   config_param :renew_kerberos_delegation_token, :bool, default: false
   desc 'delegation token reuse timer (default 8h)'
   config_param :renew_kerberos_delegation_token_interval, :time, default: 8 * 60 * 60
+  desc 'delegation token max-lifetime (default 7d)'
+  config_param :kerberos_delegation_token_max_lifetime, :time, default: 7 * 24 * 60 * 60
 
   SUPPORTED_COMPRESS = [:gzip, :bzip2, :snappy, :hadoop_snappy, :lzo_command, :zstd, :text]
   desc "Compression method (#{SUPPORTED_COMPRESS.join(',')})"
@@ -114,7 +116,7 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
               else 86400
               end
     if buffer_config = conf.elements(name: "buffer").first
-      timekey = buffer_config["timekey"] || timekey 
+      timekey = buffer_config["timekey"] || timekey
     end
 
     compat_parameters_convert(conf, :buffer, default_chunk_key: "time")
@@ -189,7 +191,9 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
     end
 
     @renew_kerberos_delegation_token_interval_hour = nil
+    @kerberos_delegation_token_max_lifetime_hour = nil
     if @renew_kerberos_delegation_token
+      @kerberos_delegation_token_max_lifetime_hour = @kerberos_delegation_token_max_lifetime / 60 / 60
       unless @username
         raise Fluent::ConfigError, "username is missing. If you want to reuse delegation token, follow with kerberos accounts"
       end
@@ -215,7 +219,7 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
   end
 
   def prepare_client(host, port, username)
-    client = WebHDFS::Client.new(host, port, username, nil, nil, nil, {}, @renew_kerberos_delegation_token_interval_hour)
+    client = WebHDFS::Client.new(host, port, username, nil, nil, nil, {}, @renew_kerberos_delegation_token_interval_hour, @kerberos_delegation_token_max_lifetime_hour)
     if @httpfs
       client.httpfs_mode = true
     end
@@ -283,7 +287,7 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
   end
 
   def send_data(path, data)
-    return @client.create(path, data, {'overwrite' => 'true'}) unless @append
+    return @client.create(path, data, { 'overwrite' => 'true' }) unless @append
 
     if path_exists?(path)
       @client.append(path, data)
@@ -309,7 +313,7 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
     path = conf['path']
 
     # check @path for ${hostname}, %{hostname} and __HOSTNAME__ to warn to use #{Socket.gethostbyname}
-    if HOSTNAME_PLACEHOLDERS_DEPRECATED.any?{|ph| path.include?(ph) }
+    if HOSTNAME_PLACEHOLDERS_DEPRECATED.any? { |ph| path.include?(ph) }
       log.warn "hostname placeholder is now deprecated. use '\#\{Socket.gethostname\}' instead."
       hostname = conf['hostname'] || Socket.gethostname
       HOSTNAME_PLACEHOLDERS_DEPRECATED.each do |ph|
@@ -317,14 +321,14 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
       end
     end
 
-    if UUID_RANDOM_PLACEHOLDERS_DEPRECATED.any?{|ph| path.include?(ph) }
+    if UUID_RANDOM_PLACEHOLDERS_DEPRECATED.any? { |ph| path.include?(ph) }
       log.warn "random uuid placeholders are now deprecated. use %{uuid} (or %{uuid_flush}) instead."
       UUID_RANDOM_PLACEHOLDERS_DEPRECATED.each do |ph|
         path.gsub!(ph, '%{uuid}')
       end
     end
 
-    if UUID_OTHER_PLACEHOLDERS_OBSOLETED.any?{|ph| path.include?(ph) }
+    if UUID_OTHER_PLACEHOLDERS_OBSOLETED.any? { |ph| path.include?(ph) }
       UUID_OTHER_PLACEHOLDERS_OBSOLETED.each do |ph|
         if path.include?(ph)
           log.error "configuration placeholder #{ph} is now unsupported by webhdfs output plugin."
@@ -387,7 +391,8 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
     if @using_formatter_config
       record = inject_values_to_record(tag, time, record)
       line = @formatter.format(tag, time, record)
-    else # TODO: remove when it's obsoleted
+    else
+      # TODO: remove when it's obsoleted
       time_str = @output_include_time ? @time_formatter.call(time) + @header_separator : ''
       tag_str = @output_include_tag ? tag + @header_separator : ''
       record_str = @formatter.format(tag, time, record)
@@ -444,11 +449,11 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
     @null_convert_keys = []
 
     @header_separator = case conf['field_separator']
-                        when nil     then "\t"
+                        when nil then "\t"
                         when 'SPACE' then ' '
-                        when 'TAB'   then "\t"
+                        when 'TAB' then "\t"
                         when 'COMMA' then ','
-                        when 'SOH'   then "\x01"
+                        when 'SOH' then "\x01"
                         else conf['field_separator']
                         end
 
@@ -469,9 +474,9 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
       format_section['delimiter'] = case conf['field_separator']
                                     when nil then '\t'
                                     when 'SPACE' then ' '
-                                    when 'TAB'   then '\t'
+                                    when 'TAB' then '\t'
                                     when 'COMMA' then ','
-                                    when 'SOH'   then 'SOH' # fixed later
+                                    when 'SOH' then 'SOH' # fixed later
                                     else conf['field_separator']
                                     end
     end
@@ -512,8 +517,7 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
     def ext
     end
 
-    def compress(chunk)
-    end
+    def compress(chunk) end
 
     private
 
