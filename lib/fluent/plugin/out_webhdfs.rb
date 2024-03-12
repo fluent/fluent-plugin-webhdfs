@@ -287,7 +287,7 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
   end
 
   def send_data(path, data)
-    return @client.create(path, data, { 'overwrite' => 'true' }) unless @append
+    return @client.create(path, data, {'overwrite' => 'true'}) unless @append
 
     if path_exists?(path)
       @client.append(path, data)
@@ -313,7 +313,7 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
     path = conf['path']
 
     # check @path for ${hostname}, %{hostname} and __HOSTNAME__ to warn to use #{Socket.gethostbyname}
-    if HOSTNAME_PLACEHOLDERS_DEPRECATED.any? { |ph| path.include?(ph) }
+    if HOSTNAME_PLACEHOLDERS_DEPRECATED.any?{|ph| path.include?(ph) }
       log.warn "hostname placeholder is now deprecated. use '\#\{Socket.gethostname\}' instead."
       hostname = conf['hostname'] || Socket.gethostname
       HOSTNAME_PLACEHOLDERS_DEPRECATED.each do |ph|
@@ -321,14 +321,14 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
       end
     end
 
-    if UUID_RANDOM_PLACEHOLDERS_DEPRECATED.any? { |ph| path.include?(ph) }
+    if UUID_RANDOM_PLACEHOLDERS_DEPRECATED.any?{|ph| path.include?(ph) }
       log.warn "random uuid placeholders are now deprecated. use %{uuid} (or %{uuid_flush}) instead."
       UUID_RANDOM_PLACEHOLDERS_DEPRECATED.each do |ph|
         path.gsub!(ph, '%{uuid}')
       end
     end
 
-    if UUID_OTHER_PLACEHOLDERS_OBSOLETED.any? { |ph| path.include?(ph) }
+    if UUID_OTHER_PLACEHOLDERS_OBSOLETED.any?{|ph| path.include?(ph) }
       UUID_OTHER_PLACEHOLDERS_OBSOLETED.each do |ph|
         if path.include?(ph)
           log.error "configuration placeholder #{ph} is now unsupported by webhdfs output plugin."
@@ -391,8 +391,7 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
     if @using_formatter_config
       record = inject_values_to_record(tag, time, record)
       line = @formatter.format(tag, time, record)
-    else
-      # TODO: remove when it's obsoleted
+    else # TODO: remove when it's obsoleted
       time_str = @output_include_time ? @time_formatter.call(time) + @header_separator : ''
       tag_str = @output_include_tag ? tag + @header_separator : ''
       record_str = @formatter.format(tag, time, record)
@@ -449,11 +448,11 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
     @null_convert_keys = []
 
     @header_separator = case conf['field_separator']
-                        when nil then "\t"
+                        when nil     then "\t"
                         when 'SPACE' then ' '
-                        when 'TAB' then "\t"
+                        when 'TAB'   then "\t"
                         when 'COMMA' then ','
-                        when 'SOH' then "\x01"
+                        when 'SOH'   then "\x01"
                         else conf['field_separator']
                         end
 
@@ -474,9 +473,9 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
       format_section['delimiter'] = case conf['field_separator']
                                     when nil then '\t'
                                     when 'SPACE' then ' '
-                                    when 'TAB' then '\t'
+                                    when 'TAB'   then '\t'
                                     when 'COMMA' then ','
-                                    when 'SOH' then 'SOH' # fixed later
+                                    when 'SOH'   then 'SOH' # fixed later
                                     else conf['field_separator']
                                     end
     end
@@ -517,7 +516,8 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
     def ext
     end
 
-    def compress(chunk) end
+    def compress(chunk)
+    end
 
     private
 
