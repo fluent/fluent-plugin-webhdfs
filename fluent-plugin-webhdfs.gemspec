@@ -23,5 +23,5 @@ Gem::Specification.new do |gem|
   gem.add_development_dependency "bzip2-ffi"
   gem.add_development_dependency "zstandard"
   gem.add_runtime_dependency "fluentd", '>= 0.14.22'
-  gem.add_runtime_dependency "webhdfs", '>= 0.10.0'
+  gem.add_runtime_dependency "webhdfs", '>= 0.11.0'
 end
