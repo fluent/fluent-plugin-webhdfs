@@ -328,7 +328,7 @@ class WebHDFSOutputTest < Test::Unit::TestCase
       })
 
     test "renew_kerberos_delegation_token default" do
-      mock.proxy(WebHDFS::Client).new("server.local", 14000, "hdfs_user", nil, nil, nil, {}, nil).once
+      mock.proxy(WebHDFS::Client).new("server.local", 14000, "hdfs_user", nil, nil, nil, {}, nil, nil).once
 
       d = create_driver(CONFIG_KERBEROS)
 
@@ -350,7 +350,7 @@ class WebHDFSOutputTest < Test::Unit::TestCase
     test "default renew_kerberos_delegation_token_interval" do
       expected_hour = 8
       expected_delegation_token_max_lifetime_hour = 7 * 24
-      mock.proxy(WebHDFS::Client).new("server.local", 14000, "hdfs_user", nil, nil, nil, {}, expected_hour,nil).once
+      mock.proxy(WebHDFS::Client).new("server.local", 14000, "hdfs_user", nil, nil, nil, {}, expected_hour, expected_delegation_token_max_lifetime_hour).once
 
       d = create_driver(CONFIG_KERBEROS +
                         config_element("", "", { "renew_kerberos_delegation_token" => true }))
@@ -369,6 +369,7 @@ class WebHDFSOutputTest < Test::Unit::TestCase
           renew_kerberos_delegation_token: d.instance.instance_eval("@renew_kerberos_delegation_token"),
           renew_kerberos_delegation_token_interval: d.instance.instance_eval("@renew_kerberos_delegation_token_interval"),
           renew_kerberos_delegation_token_interval_hour: d.instance.instance_eval("@renew_kerberos_delegation_token_interval_hour"),
+          kerberos_delegation_token_max_lifetime: d.instance.instance_eval("@kerberos_delegation_token_max_lifetime"),
           kerberos_delegation_token_max_lifetime_hour: d.instance.instance_eval("@kerberos_delegation_token_max_lifetime_hour"),
         })
     end
