@@ -1,0 +1,28 @@
+name: Testing with Ruby head
+on:
+  schedule:
+    - cron: '32 14 * * 0'
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ['ubuntu-latest']
+        ruby: [ 'head' ]
+
+    name: Ruby ${{ matrix.ruby }} on ${{ matrix.os }}
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install dependencies
+      run: sudo apt-get install libsnappy-dev libzstd-dev
+    - uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: ${{ matrix.ruby }}
+    - name: unit testing
+      env:
+        CI: true
+      run: |
+        bundle install --jobs 4 --retry 3
+        bundle exec rake test
