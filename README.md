@@ -1,6 +1,7 @@
 # fluent-plugin-webhdfs
 
-[![Build Status](https://travis-ci.org/fluent/fluent-plugin-webhdfs.svg?branch=master)](https://travis-ci.org/fluent/fluent-plugin-webhdfs)
+[![Test](https://github.com/fluent/fluent-plugin-webhdfs/actions/workflows/test.yml/badge.svg)](https://github.com/fluent/fluent-plugin-webhdfs/actions/workflows/test.yml)
+[![Testing with Ruby head](https://github.com/fluent/fluent-plugin-webhdfs/actions/workflows/test-ruby-head.yml/badge.svg)](https://github.com/fluent/fluent-plugin-webhdfs/actions/workflows/test-ruby-head.yml)
 
 [Fluentd](http://fluentd.org/) output plugin to write data into Hadoop HDFS over WebHDFS/HttpFs.
 
