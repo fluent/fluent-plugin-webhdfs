@@ -492,9 +492,9 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
                         elsif conf.has_key?('localtime') && conf.has_key?('utc')
                           raise Fluent::ConfigError, "specify either 'localtime' or 'utc'"
                         elsif conf.has_key?('localtime')
-                          Fluent::Config.bool_value('localtime')
+                          Fluent::Config.bool_value(conf['localtime'])
                         else
-                          Fluent::Config.bool_value('utc')
+                          !Fluent::Config.bool_value(conf['utc'])
                         end
       @time_formatter = Fluent::TimeFormatter.new(conf['time_format'], using_localtime)
     else
