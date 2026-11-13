@@ -317,20 +317,17 @@ class WebHDFSOutputTest < Test::Unit::TestCase
     end
 
     data("localtime true" => [{"localtime" => "true"}, "2017-01-25T05:10:30+09:00"],
+         "localtime without value" => [{"localtime" => ""}, "2017-01-25T05:10:30+09:00"],
          "localtime false" => [{"localtime" => "false"}, "2017-01-24T20:10:30Z"],
          "utc true" => [{"utc" => "true"}, "2017-01-24T20:10:30Z"],
+         "utc without value" => [{"utc" => ""}, "2017-01-24T20:10:30Z"],
+         "utc on" => [{"utc" => "on"}, "2017-01-24T20:10:30Z"],
          "utc false" => [{"utc" => "false"}, "2017-01-25T05:10:30+09:00"])
     test "output_data_type json follows localtime and utc" do |(params, expected_time)|
       conf = config_element("match", "", {"host" => "namenode.local", "path" => "/hdfs/path/file.%Y%m%d%H.log", "output_data_type" => "json"}.merge(params), [])
       d = create_driver(conf)
       time = event_time("2017-01-24 13:10:30 -0700")
-      tz = ENV["TZ"]
-      begin
-        ENV["TZ"] = "Asia/Tokyo"
-        line = d.instance.format("test.now", time, {"message" => "yay"})
-      ensure
-        ENV["TZ"] = tz
-      end
+      line = with_timezone("Asia/Tokyo") { d.instance.format("test.now", time, {"message" => "yay"}) }
       assert_equal "#{expected_time}\ttest.now\t{\"message\":\"yay\"}\n", line
     end
   end
