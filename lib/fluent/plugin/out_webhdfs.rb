@@ -505,10 +505,6 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
   class Compressor
     include Fluent::Configurable
 
-    def initialise(options = {})
-      super()
-    end
-
     def configure(conf)
       super
     end
