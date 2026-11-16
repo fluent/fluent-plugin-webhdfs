@@ -183,6 +183,20 @@ class WebHDFSOutputTest < Test::Unit::TestCase
       assert_equal '/hdfs/testing.node.local/file.%Y%m%d%H.log', d.instance.path
     end
 
+    data("${uuid:hostname}" => "/hdfs/path/file.${uuid:hostname}.log",
+         "%{uuid:timestamp}" => "/hdfs/path/file.%{uuid:timestamp}.log",
+         "__UUID_HOSTNAME__" => "/hdfs/path/file.__UUID_HOSTNAME__.log")
+    test "obsoleted uuid placeholders raise ConfigError" do |path|
+      conf = config_element(
+        "ROOT", "", {
+          "namenode" => "server.local:50070",
+          "path" => path
+        })
+      assert_raise Fluent::ConfigError.new("there are unsupported placeholders in path.") do
+        create_driver(conf)
+      end
+    end
+
     data("%Y%m%d" => ["/hdfs/path/file.%Y%m%d.log", "/hdfs/path/file.20120718.log"],
          "%Y%m%d.%H%M" => ["/hdfs/path/file.%Y%m%d.%H%M.log", "/hdfs/path/file.20120718.1503.log"])
     test "generate_path" do |(path, expected)|
