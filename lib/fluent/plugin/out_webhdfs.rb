@@ -334,7 +334,7 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
           log.error "configuration placeholder #{ph} is now unsupported by webhdfs output plugin."
         end
       end
-      raise ConfigError, "there are unsupported placeholders in path."
+      raise Fluent::ConfigError, "there are unsupported placeholders in path."
     end
   end
 
