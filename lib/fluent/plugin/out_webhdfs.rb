@@ -425,7 +425,8 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
         failovered = true
         retry
       end
-      if @num_errors && ((@num_errors + 1) >= @failures_before_use_standby) && namenode_available(@client_standby)
+      num_errors = output_num_errors
+      if num_errors && ((num_errors + 1) >= @failures_before_use_standby) && namenode_available(@client_standby)
         log.warn "Too many failures. Try to use the standby namenode instead."
         namenode_failover
         failovered = true
@@ -434,6 +435,15 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
       raise e
     end
     hdfs_path
+  end
+
+  # Fluentd 1.13 replaced the @num_errors counter of Output with @num_errors_metrics
+  def output_num_errors
+    if instance_variable_defined?(:@num_errors_metrics) && @num_errors_metrics
+      @num_errors_metrics.get
+    else
+      @num_errors
+    end
   end
 
   def compat_parameters_convert_plaintextformatter(conf)
