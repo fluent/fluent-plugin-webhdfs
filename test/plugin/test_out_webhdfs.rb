@@ -259,9 +259,13 @@ class WebHDFSOutputTest < Test::Unit::TestCase
       chunk = d.instance.buffer.generate_chunk(d.instance.metadata("test", time, {}))
       chunk.append([d.instance.format("test", time, {"message" => "hello"})])
       d.instance.write(chunk)
+    rescue
+      # Fluentd counts a failed flush, but never resets the count after a success
+      d.instance.instance_variable_get(:@num_errors_metrics)&.inc
+      raise
     end
 
-    test "switches to the standby namenode after failures_before_use_standby failed flushes" do
+    test "switches to the standby namenode after failures_before_use_standby failed writes" do
       d = create_driver(CONFIG_STANDBY)
       active = d.instance.instance_variable_get(:@client)
       standby = d.instance.instance_variable_get(:@client_standby)
@@ -270,22 +274,42 @@ class WebHDFSOutputTest < Test::Unit::TestCase
       stub(standby).stat { raise WebHDFS::FileNotFoundError, "not found" }
       mock(standby).create("/hdfs/path/file.20120718.log", anything).once
 
-      # the two previous flushes of this output failed
-      2.times { d.instance.instance_variable_get(:@num_errors_metrics).inc }
+      2.times { assert_raise(WebHDFS::ServerError) { write_chunk(d) } }
 
       assert_equal "/hdfs/path/file.20120718.log", write_chunk(d)
       assert_equal "nn2.local", d.instance.instance_variable_get(:@client).host
     end
 
-    test "keeps the active namenode before failures_before_use_standby failed flushes" do
+    test "keeps the active namenode before failures_before_use_standby failed writes" do
       d = create_driver(CONFIG_STANDBY)
       active = d.instance.instance_variable_get(:@client)
       standby = d.instance.instance_variable_get(:@client_standby)
       stub(active).stat { raise WebHDFS::ServerError, "Failed to connect to host nn1.local:50070" }
+      stub(standby).list("/") { [] }
+      stub(standby).stat { raise WebHDFS::FileNotFoundError, "not found" }
       dont_allow(standby).create
 
-      d.instance.instance_variable_get(:@num_errors_metrics).inc
+      2.times { assert_raise(WebHDFS::ServerError) { write_chunk(d) } }
+      assert_equal "nn1.local", d.instance.instance_variable_get(:@client).host
+    end
 
+    test "a successful write resets the count of failed writes" do
+      d = create_driver(CONFIG_STANDBY)
+      active = d.instance.instance_variable_get(:@client)
+      standby = d.instance.instance_variable_get(:@client_standby)
+      stats = 0
+      stub(active).stat do
+        stats += 1
+        raise WebHDFS::FileNotFoundError, "not found" if stats == 3
+        raise WebHDFS::ServerError, "Failed to connect to host nn1.local:50070"
+      end
+      mock(active).create("/hdfs/path/file.20120718.log", anything).once
+      stub(standby).list("/") { [] }
+      stub(standby).stat { raise WebHDFS::FileNotFoundError, "not found" }
+      dont_allow(standby).create
+
+      2.times { assert_raise(WebHDFS::ServerError) { write_chunk(d) } }
+      assert_equal "/hdfs/path/file.20120718.log", write_chunk(d)
       assert_raise(WebHDFS::ServerError) { write_chunk(d) }
       assert_equal "nn1.local", d.instance.instance_variable_get(:@client).host
     end
