@@ -104,6 +104,8 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
     @standby_namenode_host = nil
     @output_include_tag = @output_include_time = nil # TODO: deprecated
     @header_separator = @field_separator = nil # TODO: deprecated
+    @write_failures = 0
+    @write_failures_mutex = Mutex.new
   end
 
   def configure(conf)
@@ -425,7 +427,7 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
         failovered = true
         retry
       end
-      if @num_errors && ((@num_errors + 1) >= @failures_before_use_standby) && namenode_available(@client_standby)
+      if ((@write_failures + 1) >= @failures_before_use_standby) && namenode_available(@client_standby)
         log.warn "Too many failures. Try to use the standby namenode instead."
         namenode_failover
         failovered = true
@@ -433,7 +435,13 @@ class Fluent::Plugin::WebHDFSOutput < Fluent::Plugin::Output
       end
       raise e
     end
+    @write_failures_mutex.synchronize { @write_failures = 0 }
     hdfs_path
+  rescue
+    # Consecutive failed writes of this output, for failures_before_use_standby.
+    # Fluentd's own error counter is a running total and also counts emit errors.
+    @write_failures_mutex.synchronize { @write_failures += 1 }
+    raise
   end
 
   def compat_parameters_convert_plaintextformatter(conf)
