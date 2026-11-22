@@ -252,7 +252,7 @@ class WebHDFSOutputTest < Test::Unit::TestCase
         "standby_namenode" => "nn2.local:50070",
         "path" => "/hdfs/path/file.%Y%m%d.log",
         "failures_before_use_standby" => 3
-      })
+      }, [config_element("buffer", "time", {"timekey_use_utc" => true})])
 
     def write_chunk(d)
       time = event_time("2012-07-18 15:03:00 +0000")
